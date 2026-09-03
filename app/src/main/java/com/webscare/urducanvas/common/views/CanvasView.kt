@@ -6,6 +6,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapShader
 import android.graphics.BlurMaskFilter
+import android.graphics.Camera
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.ColorFilter
@@ -5030,6 +5031,38 @@ class CanvasView @JvmOverloads constructor(
         val lineHeight = (fm.descent - fm.ascent) * element.lineSpacing
         val totalHeight = lineHeight * lines.size
 
+        val t3d = element.text3d
+        val is3D = t3d != null && t3d.enabled
+
+        if (is3D && t3d != null) {
+            canvas.save()
+            val camera = Camera()
+            val matrix3d = Matrix()
+            camera.save()
+
+            if (t3d.perspective.type == "orthographic") {
+                camera.setLocation(0f, 0f, -4000f)
+            } else {
+                val dist = -t3d.perspective.strength.coerceAtLeast(120f)
+                camera.setLocation(0f, 0f, dist / 72f)
+            }
+
+            camera.rotateX(-t3d.rotation.x)
+            camera.rotateY(t3d.rotation.y)
+            camera.rotateZ(-t3d.rotation.z)
+            camera.translate(0f, 0f, t3d.position.z * 0.5f)
+
+            camera.getMatrix(matrix3d)
+            camera.restore()
+
+            val pivotX = (t3d.pivot.x / 100f) * (element.getLocalContentWidth() / 2f)
+            val pivotY = (t3d.pivot.y / 100f) * (totalHeight / 2f)
+            matrix3d.preTranslate(-pivotX, -pivotY)
+            matrix3d.postTranslate(pivotX, pivotY)
+
+            canvas.concat(matrix3d)
+        }
+
         // ----- DRAW LABEL -----
         if (element.hasLabel) {
             val maxLineWidth = try {
@@ -5477,6 +5510,110 @@ class CanvasView @JvmOverloads constructor(
                 BlurMaskFilter(element.blurValue, BlurMaskFilter.Blur.NORMAL)
             fillPaint.xfermode = drawWithBlend(element)
 
+            // ── 3D TEXT RENDERING PIPELINE ────────────────────────────────────────
+            if (is3D && t3d != null) {
+                try {
+                    fillPaint.color = Color.parseColor(t3d.material.frontColor)
+                } catch (e: Exception) {
+                    fillPaint.color = element.paintColor
+                }
+
+                val bright = 0.72f + (t3d.lighting.intensity / 250f) + (t3d.lighting.ambient / 500f)
+                val contrast = 1f + (100f - t3d.material.roughness) / 400f
+                val tVal = (1f - contrast) * 128f + (bright - 1f) * 255f
+                val cm = ColorMatrix(floatArrayOf(
+                    contrast, 0f, 0f, 0f, tVal,
+                    0f, contrast, 0f, 0f, tVal,
+                    0f, 0f, contrast, 0f, tVal,
+                    0f, 0f, 0f, 1f, 0f
+                ))
+                fillPaint.colorFilter = ColorMatrixColorFilter(cm)
+                if (t3d.material.surface == "glass") {
+                    fillPaint.alpha = (element.paintAlpha * 0.86f).toInt()
+                }
+
+                // ── 3D Extrusion ──
+                val dirVec = when (t3d.extrusion.direction) {
+                    "top-left" -> Pair(-0.7f, -0.7f)
+                    "top" -> Pair(0f, -1f)
+                    "top-right" -> Pair(0.7f, -0.7f)
+                    "left" -> Pair(-1f, 0f)
+                    "center" -> Pair(0f, 0f)
+                    "right" -> Pair(1f, 0f)
+                    "bottom-left" -> Pair(-0.7f, 0.7f)
+                    "bottom" -> Pair(0f, 1f)
+                    "bottom-right" -> Pair(0.7f, 0.7f)
+                    else -> Pair(0.7f, 0.7f)
+                }
+                val effDepth = t3d.extrusion.depth * (t3d.extrusion.scale / 100f)
+                val steps = minOf(48, effDepth.toInt())
+                if (steps > 0) {
+                    val extColor = try { Color.parseColor(t3d.material.extrusionColor) } catch (e: Exception) { Color.DKGRAY }
+                    val extPaint = TextPaint(fillPaint).apply {
+                        colorFilter = null
+                        shader = null
+                        color = extColor
+                        xfermode = null
+                        maskFilter = null
+                        style = Paint.Style.FILL
+                    }
+                    for (step in 1..steps) {
+                        val ex = xPos + dirVec.first * step
+                        val ey = yOffset + dirVec.second * step
+                        canvas.drawText(displayText, ex, ey, extPaint)
+                    }
+                }
+
+                // ── 3D Preset Glow (if any) ──
+                if (!t3d.glow.isNullOrEmpty()) {
+                    val glowColor = try { Color.parseColor(t3d.glow) } catch (e: Exception) { Color.CYAN }
+                    for (r in 1..3) {
+                        val gp = TextPaint(fillPaint).apply {
+                            colorFilter = null
+                            shader = null
+                            color = glowColor
+                            maskFilter = BlurMaskFilter((r * 9f).coerceAtLeast(0.5f), BlurMaskFilter.Blur.OUTER)
+                        }
+                        canvas.drawText(displayText, xPos, yOffset, gp)
+                    }
+                }
+
+                // ── 3D Cast Shadow ──
+                if (t3d.shadow.enabled && t3d.shadow.opacity > 0) {
+                    val sAngleRad = Math.toRadians((t3d.shadow.angle - 90.0)).toFloat()
+                    val sDist = t3d.shadow.distance * (t3d.shadow.scale / 100f)
+                    val sdx = kotlin.math.cos(sAngleRad) * sDist
+                    val sdy = kotlin.math.sin(sAngleRad) * sDist
+                    val baseShadowColor = try { Color.parseColor(t3d.shadow.color) } catch (e: Exception) { Color.BLACK }
+                    val effectiveShadowColor = (baseShadowColor and 0x00FFFFFF) or (t3d.shadow.opacity.coerceIn(0, 255) shl 24)
+                    val shadowRadius = (t3d.shadow.blur + maxOf(0f, t3d.shadow.spread)).coerceAtLeast(0.5f)
+                    val sp = TextPaint(fillPaint).apply {
+                        colorFilter = null
+                        shader = null
+                        color = effectiveShadowColor
+                        xfermode = null
+                        maskFilter = BlurMaskFilter(shadowRadius, BlurMaskFilter.Blur.NORMAL)
+                    }
+                    canvas.drawText(displayText, xPos + sdx, yOffset + sdy, sp)
+                }
+
+                // ── 3D Bevel Highlight Stroke ──
+                if (t3d.extrusion.bevel > 0f) {
+                    val bevelStrokeWidth = (t3d.extrusion.bevel / 14f).coerceAtLeast(0.5f)
+                    val highlightAlpha = (0.15f + t3d.lighting.highlight / 180f).coerceIn(0f, 1f)
+                    val bevelColor = Color.argb((highlightAlpha * 255).toInt(), 255, 255, 255)
+                    val bevelPaint = TextPaint(fillPaint).apply {
+                        colorFilter = null
+                        shader = null
+                        style = Paint.Style.STROKE
+                        strokeWidth = bevelStrokeWidth
+                        color = bevelColor
+                        maskFilter = null
+                    }
+                    canvas.drawText(displayText, xPos, yOffset, bevelPaint)
+                }
+            }
+
             // ── LAYER 1a: Double Step 2 Extrusion (Style #17) ──
             if (element.hasDoubleExtrude && element.extrudeStep2Depth > 0f) {
                 val step2Paint = TextPaint(fillPaint).apply {
@@ -5656,6 +5793,10 @@ class CanvasView @JvmOverloads constructor(
             }
 
             yOffset += lineHeight
+        }
+
+        if (is3D) {
+            canvas.restore()
         }
     }
 

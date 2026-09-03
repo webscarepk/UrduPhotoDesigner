@@ -52,9 +52,10 @@
         android:text="@string/image_properties"
         android:textColor="@color/black"
         android:fontFamily="@font/bold"
-        android:layout_marginTop="8dp"
+        android:layout_marginStart="18dp"
+        android:layout_marginTop="10dp"
         android:textSize="16sp"
-        app:layout_constraintStart_toEndOf="@id/startGuide"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/topGuide"/>
 
     <LinearLayout
@@ -96,10 +97,10 @@
         android:id="@+id/toolbarRow"
         android:layout_width="0dp"
         android:layout_height="42dp"
-        android:layout_marginTop="5dp"
+        android:layout_marginTop="4dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/back">
+        app:layout_constraintTop_toBottomOf="@id/title">
 
         <LinearLayout
             android:id="@+id/tabRowContent"

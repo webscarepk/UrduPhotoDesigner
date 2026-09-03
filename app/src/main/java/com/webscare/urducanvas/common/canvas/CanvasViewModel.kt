@@ -45,6 +45,15 @@ import com.webscare.urducanvas.common.canvas.model.ExportQuality
 import com.webscare.urducanvas.common.canvas.model.ExportResolution
 import com.webscare.urducanvas.common.canvas.model.GradientItem
 import com.webscare.urducanvas.common.canvas.model.StrokeData
+import com.webscare.urducanvas.common.canvas.model.Text3DData
+import com.webscare.urducanvas.common.canvas.model.Text3DRotation
+import com.webscare.urducanvas.common.canvas.model.Text3DPerspective
+import com.webscare.urducanvas.common.canvas.model.Text3DPosition
+import com.webscare.urducanvas.common.canvas.model.Text3DPivot
+import com.webscare.urducanvas.common.canvas.model.Text3DExtrusion
+import com.webscare.urducanvas.common.canvas.model.Text3DMaterial
+import com.webscare.urducanvas.common.canvas.model.Text3DLighting
+import com.webscare.urducanvas.common.canvas.model.Text3DShadow
 import com.webscare.urducanvas.common.canvas.sealed.BatchedCanvasAction
 import com.webscare.urducanvas.common.canvas.sealed.CanvasAction
 import com.webscare.urducanvas.common.canvas.sealed.ImageFilter
@@ -246,6 +255,10 @@ class CanvasViewModel @Inject constructor(
 
     private val _labelShape = MutableLiveData(LabelShape.RECTANGLE_FILL)
     val labelShape: LiveData<LabelShape> = _labelShape
+
+    // 🔷 3D Text
+    private val _text3dData = MutableLiveData<Text3DData?>()
+    val text3dData: LiveData<Text3DData?> = _text3dData
 
     private val _lineSpacing = MutableLiveData(1.0f)
     val lineSpacing: LiveData<Float> = _lineSpacing
@@ -3593,6 +3606,9 @@ class CanvasViewModel @Inject constructor(
             _hasBlur.value = textElement.hasBlur
             _opacity.value = textElement.paintAlpha
             _blendingType.value = textElement.blendType
+
+            // 🟡 3D Text
+            _text3dData.value = textElement.text3d?.deepCopy()
         } else {
             resetTextFormattingToDefault()
         }
@@ -3638,6 +3654,9 @@ class CanvasViewModel @Inject constructor(
         _hasBlur.value = false
         _opacity.value = 255
         _blendingType.value = BlendType.SRC
+
+        // Reset 3D Text
+        _text3dData.value = null
     }
 
     private fun refreshSelectedElements() {
@@ -4267,7 +4286,7 @@ class CanvasViewModel @Inject constructor(
         val size = _canvasSize.value ?: return
 
         val isNightMode = (context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
-        val defaultBgColor = if (isNightMode) Color.parseColor("#2B2B2B") else Color.WHITE
+        val defaultBgColor = if (isNightMode) Color.BLACK else ResourcesCompat.getColor(context.resources, R.color.contrast, null)
 
         // otherwise create and insert one
         val bg = CanvasElement(
@@ -4846,6 +4865,69 @@ class CanvasViewModel @Inject constructor(
         val radius = _shadowRadius.value ?: 8f
         val enabled = true
         setImageShadow(enabled, color, dx, dy, radius, opacity, pushToUndo = false)
+    }
+
+    // ── 3D Text Manipulation Methods ──────────────────────────────────────────
+    fun updateText3D(pushToUndo: Boolean = false, transform: (Text3DData) -> Unit) {
+        val currentList = _canvasElements.value?.toMutableList() ?: return
+        val context = currentList.firstOrNull()?.context
+        val selectedGroupIds = currentList.filter { it.isSelected && it.type == ElementType.GROUP }.map { it.id }.toSet()
+        val oldList = currentList.map { it.copy(context = null) }
+        var modifiedAny = false
+
+        val updatedList = currentList.map { element ->
+            val isTargeted = element.isSelected || (element.groupId != null && element.groupId in selectedGroupIds)
+            if (isTargeted && element.type == ElementType.TEXT) {
+                modifiedAny = true
+                val d = element.text3d?.deepCopy() ?: Text3DData(enabled = true)
+                d.enabled = true
+                transform(d)
+                val updated = element.copy(text3d = d)
+                val tf = element.originalTypeface ?: element.paint.typeface ?: element.applyTypefaceFromFontList(context)
+                updated.originalTypeface = tf
+                updated.paint.typeface = tf
+                updated.context = context
+                updated
+            } else element
+        }
+
+        if (modifiedAny) {
+            _canvasElements.value = updatedList
+            val firstSelectedText = updatedList.firstOrNull { (it.isSelected || (it.groupId != null && it.groupId in selectedGroupIds)) && it.type == ElementType.TEXT }
+            _text3dData.value = firstSelectedText?.text3d?.deepCopy()
+
+            if (pushToUndo) {
+                _canvasActions.push(
+                    CanvasAction.UpdateCanvasElementsOrder(
+                        oldList,
+                        updatedList.map { it.copy(context = null) }
+                    )
+                )
+                _redoStack.clear()
+                notifyUndoRedoChanged()
+                markChanged()
+            }
+        }
+    }
+
+    fun apply3DPreset(presetId: String, pushToUndo: Boolean = true) {
+        val preset = Text3DData.PRESETS.find { it.id == presetId } ?: return
+        updateText3D(pushToUndo = pushToUndo) { d ->
+            d.applyPreset(preset)
+        }
+    }
+
+    fun reset3DSection(section: String, pushToUndo: Boolean = true) {
+        updateText3D(pushToUndo = pushToUndo) { d ->
+            when (section) {
+                "rotation" -> d.rotation = Text3DRotation(0f, 0f, 0f)
+                "perspective" -> d.perspective = Text3DPerspective(600f, 45f, "perspective")
+                "more" -> {
+                    d.pivot = Text3DPivot(0f, 0f, 0f)
+                    d.position = Text3DPosition(0f)
+                }
+            }
+        }
     }
 
     fun setTextOuterGlow(enabled: Boolean, color: Int, radius: Float, opacity: Int) {
@@ -6153,6 +6235,17 @@ class CanvasViewModel @Inject constructor(
 
     fun closeAppearanceTab() {
         _openAppearanceTab.value = false
+    }
+
+    private val _open3DTab = MutableLiveData<Boolean>()
+    val open3DTab: LiveData<Boolean> = _open3DTab
+
+    fun open3DTab() {
+        _open3DTab.value = true
+    }
+
+    fun close3DTab() {
+        _open3DTab.value = false
     }
 
     private var projectSourceName: String? = null

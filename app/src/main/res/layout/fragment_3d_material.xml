@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/white"
+    android:paddingStart="10dp"
+    android:paddingTop="6dp"
+    android:paddingEnd="10dp"
+    android:paddingBottom="6dp">
+
+    <!-- Top Segmented Control -->
+    <com.webscare.urducanvas.common.views.SegmentedControlView
+        android:id="@+id/segmentedControl"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- ── Subscreen 1: SURFACE ── -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/layoutSurface"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="8dp"
+        android:visibility="visible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/segmentedControl">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvSurfaces"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:clipToPadding="false"
+            android:orientation="horizontal"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:listitem="@layout/item_material_surface" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- ── Subscreen 2: COLOURS ── -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/layoutColours"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="6dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/segmentedControl">
+
+        <!-- Row 1: FRONT -->
+        <TextView
+            android:id="@+id/tvFrontTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/bold"
+            android:text="Front"
+            android:textColor="#2B2B2B"
+            android:textSize="11sp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvFrontColors"
+            android:layout_width="0dp"
+            android:layout_height="28dp"
+            android:layout_marginTop="4dp"
+            android:clipToPadding="false"
+            android:orientation="horizontal"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tvFrontTitle"
+            tools:listitem="@layout/item_3d_color_swatch" />
+
+        <!-- Row 2: DEPTH -->
+        <TextView
+            android:id="@+id/tvDepthTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:fontFamily="@font/bold"
+            android:text="Depth"
+            android:textColor="#2B2B2B"
+            android:textSize="11sp"
+            app:layout_constraintEnd_toStartOf="@id/btnSameAsFront"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/rvFrontColors" />
+
+        <TextView
+            android:id="@+id/btnSameAsFront"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/bold"
+            android:text="Same as Front"
+            android:textColor="#005D28"
+            android:textSize="11sp"
+            app:layout_constraintBottom_toBottomOf="@id/tvDepthTitle"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/tvDepthTitle" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvDepthColors"
+            android:layout_width="0dp"
+            android:layout_height="28dp"
+            android:layout_marginTop="4dp"
+            android:clipToPadding="false"
+            android:orientation="horizontal"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tvDepthTitle"
+            tools:listitem="@layout/item_3d_color_swatch" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- ── Subscreen 3: MORE ── -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/layoutMore"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="8dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/segmentedControl">
+
+        <com.webscare.urducanvas.common.views.Custom3DSliderView
+            android:id="@+id/sliderRoughness"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="6dp"
+            app:layout_constraintEnd_toStartOf="@id/sliderMetallic"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <com.webscare.urducanvas.common.views.Custom3DSliderView
+            android:id="@+id/sliderMetallic"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/sliderRoughness"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <com.webscare.urducanvas.common.views.Custom3DSliderView
+            android:id="@+id/sliderSpecular"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="6dp"
+            app:layout_constraintEnd_toStartOf="@id/sliderReflection"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/sliderRoughness" />
+
+        <com.webscare.urducanvas.common.views.Custom3DSliderView
+            android:id="@+id/sliderReflection"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:layout_marginTop="8dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/sliderSpecular"
+            app:layout_constraintTop_toBottomOf="@id/sliderMetallic" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

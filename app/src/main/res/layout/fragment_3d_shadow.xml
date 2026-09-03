@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/white"
+    android:paddingStart="10dp"
+    android:paddingTop="6dp"
+    android:paddingEnd="10dp"
+    android:paddingBottom="6dp">
+
+    <!-- Top Segmented Control -->
+    <com.webscare.urducanvas.common.views.SegmentedControlView
+        android:id="@+id/segmentedControl"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- ── Subscreen 1: SHADOW MAIN ── -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/layoutShadowMain"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="6dp"
+        android:visibility="visible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/segmentedControl">
+
+        <!-- Top Section: Angle Pad on Left + Opacity & Radius on Right -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/topShadowRow"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <com.webscare.urducanvas.common.views.Text3DPadView
+                android:id="@+id/shadowPad"
+                android:layout_width="84dp"
+                android:layout_height="84dp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <LinearLayout
+                android:id="@+id/shadowSlidersTop"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:orientation="vertical"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@id/shadowPad"
+                app:layout_constraintTop_toTopOf="@id/shadowPad">
+
+                <com.webscare.urducanvas.common.views.Custom3DSliderView
+                    android:id="@+id/sliderOpacity"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+
+                <com.webscare.urducanvas.common.views.Custom3DSliderView
+                    android:id="@+id/sliderRadius"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp" />
+
+            </LinearLayout>
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <!-- Distance Slider (Full Width) -->
+        <com.webscare.urducanvas.common.views.Custom3DSliderView
+            android:id="@+id/sliderDistance"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/topShadowRow" />
+
+        <!-- Color Strip Row -->
+        <LinearLayout
+            android:id="@+id/shadowColorStripContainer"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/sliderDistance">
+
+            <ImageView
+                android:id="@+id/btnShadowColorPicker"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:layout_marginEnd="6dp"
+                android:src="@drawable/ic_color_picker"
+                app:tint="#8E94A2" />
+
+            <ImageView
+                android:id="@+id/btnShadowNone"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:layout_marginEnd="6dp"
+                android:src="@drawable/ic_none"
+                app:tint="#8E94A2" />
+
+            <ImageView
+                android:id="@+id/btnShadowEyeDropper"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:layout_marginEnd="10dp"
+                android:src="@drawable/ic_eye_dropper"
+                app:tint="#8E94A2" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvShadowColors"
+                android:layout_width="0dp"
+                android:layout_height="28dp"
+                android:layout_weight="1"
+                android:clipToPadding="false"
+                android:orientation="horizontal"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                tools:listitem="@layout/item_3d_color_swatch" />
+
+        </LinearLayout>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- ── Subscreen 2: MORE (Shadow Scale) ── -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/layoutShadowMore"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="8dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/segmentedControl">
+
+        <com.webscare.urducanvas.common.views.Custom3DSliderView
+            android:id="@+id/sliderShadowScale"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="28dp"
+    android:layout_height="28dp"
+    android:layout_marginEnd="8dp">
+
+    <!-- Selected Ring Outer -->
+    <View
+        android:id="@+id/vSelectedRing"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:background="@drawable/bg_tab_dot"
+        android:visibility="gone" />
+
+    <!-- Color Circle -->
+    <View
+        android:id="@+id/vColorCircle"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_gravity="center" />
+
+</FrameLayout>

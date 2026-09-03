@@ -305,6 +305,9 @@ data class CanvasElement(
     // ── Table Data ────────────────────────────────────────────────────────────
     @SerializedName("tableData") var tableData: TableData? = null,
 
+    // ── 3D Text Data ──────────────────────────────────────────────────────────
+    @SerializedName("text3d") var text3d: Text3DData? = null,
+
     ) : Serializable {
 
     @field:Transient var cachedAdjustedBitmap: Bitmap? = null

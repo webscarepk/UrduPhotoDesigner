@@ -178,6 +178,23 @@ class EditorFragment : Fragment() {
             )
         }
 
+        binding.editorRoot.clipChildren = false
+        binding.editorRoot.clipToPadding = false
+        binding.header.clipChildren = false
+        binding.header.clipToPadding = false
+        binding.topToolbarRow.clipChildren = false
+        binding.topToolbarRow.clipToPadding = false
+        binding.normalTools.clipChildren = false
+        binding.normalTools.clipToPadding = false
+        binding.tableTools.clipChildren = false
+        binding.tableTools.clipToPadding = false
+        binding.drawTools.clipChildren = false
+        binding.drawTools.clipToPadding = false
+        binding.redoUndo.clipChildren = false
+        binding.redoUndo.clipToPadding = false
+        (binding.root.parent as? ViewGroup)?.clipChildren = false
+        (binding.root.parent as? ViewGroup)?.clipToPadding = false
+
         ViewCompat.setOnApplyWindowInsetsListener(binding.bottomNavContainer) { view, insets ->
             if (MANUFACTURER.equals("realme", ignoreCase = true)) {
                 val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -842,10 +859,11 @@ class EditorFragment : Fragment() {
             if (::sizedCanvasView.isInitialized) sizedCanvasView.setSelectionMode(enabled)
         }
 
-        // Set default background color based on app mode for new designs/projects
-        if (exportModel == null && viewModel.backgroundColor.value == Color.WHITE) {
+        // Set default background color based on app mode for new designs/projects (black or contrast)
+        val defaultContrastColor = ContextCompat.getColor(requireContext(), R.color.contrast)
+        if (exportModel == null && (viewModel.backgroundColor.value == null || viewModel.backgroundColor.value == Color.WHITE)) {
             val isNightMode = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
-            val defaultColor = if (isNightMode) Color.parseColor("#2B2B2B") else Color.WHITE
+            val defaultColor = if (isNightMode) Color.BLACK else defaultContrastColor
             viewModel.setCanvasBackgroundColor(defaultColor)
         }
 
@@ -2219,34 +2237,18 @@ class EditorFragment : Fragment() {
         val overshootInterpolator = android.view.animation.OvershootInterpolator(2.2f)
         val accelerateInterpolator = android.view.animation.AccelerateInterpolator()
 
-        val whiteColor = ContextCompat.getColor(ctx, R.color.white)
         val blackColor = ContextCompat.getColor(ctx, R.color.black)
-
-        // Ensure all toolbar pill backgrounds stay white
-        val whiteTint = ColorStateList.valueOf(whiteColor)
-        b.back.backgroundTintList = whiteTint
-        b.normalTools.backgroundTintList = whiteTint
-        b.redoUndo.backgroundTintList = whiteTint
-        b.drawTools.backgroundTintList = whiteTint
-        b.tableTools.backgroundTintList = whiteTint
-        b.btnClearDrawing.backgroundTintList = whiteTint
-        b.btnResetBrushDefaults.backgroundTintList = whiteTint
-        b.btnTableCellText.backgroundTintList = whiteTint
-        b.btnTableZoom.backgroundTintList = whiteTint
-        if (viewModel.isGridEnabled.value != true) b.grid.backgroundTintList = whiteTint
-        if (viewModel.isPanMode.value != true) b.pan.backgroundTintList = whiteTint
-        b.zoom.backgroundTintList = whiteTint
 
         fun applyDoneButtonState(isDoneCheckmark: Boolean) {
             if (isDoneCheckmark) {
                 b.done.setImageResource(R.drawable.ic_done)
                 b.done.setBackgroundResource(R.drawable.button_bg_round)
-                b.done.backgroundTintList = ColorStateList.valueOf(whiteColor)
+                b.done.backgroundTintList = ColorStateList.valueOf(colorOf(R.color.contrast))
                 b.done.imageTintList = ColorStateList.valueOf(blackColor)
             } else {
                 b.done.setImageResource(R.drawable.ic_export_canvas)
                 b.done.setBackgroundResource(R.drawable.ic_button_gradient_wrap)
-                b.done.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#30005D28"))
+                b.done.backgroundTintList = ColorStateList.valueOf(colorOf(R.color.selection))
                 b.done.imageTintList = ColorStateList.valueOf(blackColor)
             }
         }
@@ -3116,20 +3118,14 @@ class EditorFragment : Fragment() {
             CreateFragment.newResizeInstance().show(parentFragmentManager, "resize_canvas")
         }
 
-        // ── Background color: light / dark (ColorsAdapter style swatches) ──
-        var lightColor = ContextCompat.getColor(requireContext(), R.color.contrast)
-        var darkColor  = ContextCompat.getColor(requireContext(), R.color.black)
+        // ── Background color: contrast / black swatches ──
+        val contrastColor = ContextCompat.getColor(requireContext(), R.color.contrast)
+        val blackColor    = Color.BLACK
 
-        // Day-mode color fallbacks if night-mode is active (where R.color.black becomes #FFFFFF)
-        if (darkColor == Color.WHITE || darkColor == -1) {
-            lightColor = Color.parseColor("#F7F7F7") // R.color.contrast in day mode
-            darkColor  = Color.parseColor("#2B2B2B") // R.color.black in day mode
-        }
+        val currentBgColor = viewModel.backgroundColor.value ?: contrastColor
 
-        val currentBgColor = viewModel.backgroundColor.value ?: Color.WHITE
-
-        val isLightSelected = currentBgColor == lightColor || currentBgColor == Color.WHITE
-        val isDarkSelected = currentBgColor == darkColor || currentBgColor == Color.BLACK
+        val isContrastSelected = currentBgColor == contrastColor
+        val isDarkSelected = currentBgColor == blackColor || currentBgColor == Color.parseColor("#2B2B2B")
 
         fun bindColorSwatch(
             outer: com.google.android.material.card.MaterialCardView,
@@ -3172,23 +3168,23 @@ class EditorFragment : Fragment() {
             popupBinding.bgLightOuter,
             popupBinding.bgLightInner,
             popupBinding.bgLightColor,
-            lightColor,
-            isLightSelected
+            contrastColor,
+            isContrastSelected
         )
         bindColorSwatch(
             popupBinding.bgDarkOuter,
             popupBinding.bgDarkInner,
             popupBinding.bgDarkColor,
-            darkColor,
+            blackColor,
             isDarkSelected
         )
 
         popupBinding.bgLightOuter.addPressEffect {
-            viewModel.setCanvasBackgroundColor(lightColor)
+            viewModel.setCanvasBackgroundColor(contrastColor)
             popupWindow.dismiss()
         }
         popupBinding.bgDarkOuter.addPressEffect {
-            viewModel.setCanvasBackgroundColor(darkColor)
+            viewModel.setCanvasBackgroundColor(blackColor)
             popupWindow.dismiss()
         }
 

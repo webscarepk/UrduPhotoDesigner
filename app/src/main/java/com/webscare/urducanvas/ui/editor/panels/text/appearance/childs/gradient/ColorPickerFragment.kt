@@ -79,7 +79,7 @@ class ColorPickerFragment : Fragment() {
 
         return when (target) {
             PickerTarget.COLOR_PICKER_BACKGROUND, PickerTarget.EYE_DROPPER_BACKGROUND -> {
-                viewModel.backgroundColor.value ?: Color.WHITE
+                viewModel.backgroundColor.value ?: ContextCompat.getColor(requireContext(), R.color.contrast)
             }
             PickerTarget.COLOR_PICKER_OVERLAY, PickerTarget.EYE_DROPPER_OVERLAY -> {
                 val overlay = element?.overlayColor ?: Color.TRANSPARENT

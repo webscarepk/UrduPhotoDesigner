@@ -583,8 +583,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun applyStatusBarColor() {
-        window.statusBarColor = androidx.core.content.ContextCompat.getColor(this, R.color.white)
-        setStatusBarTextColor(darkIcons = true)
+        val isNightMode = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
+        window.statusBarColor = androidx.core.content.ContextCompat.getColor(this, R.color.appColor)
+        setStatusBarTextColor(darkIcons = false)
     }
 
     private fun forceImmersiveMode() {

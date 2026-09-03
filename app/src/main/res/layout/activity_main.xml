@@ -16,6 +16,8 @@
         android:name="androidx.navigation.fragment.NavHostFragment"
         android:layout_width="0dp"
         android:layout_height="0dp"
+        android:clipChildren="false"
+        android:clipToPadding="false"
         android:visibility="visible"
         app:defaultNavHost="true"
         app:navGraph="@navigation/nav_graph"

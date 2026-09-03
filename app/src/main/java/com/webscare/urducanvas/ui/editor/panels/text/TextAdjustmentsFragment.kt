@@ -41,7 +41,7 @@ class TextAdjustmentsFragment : androidx.fragment.app.Fragment() {
     private val binding get() = _binding!!
 
     private var mediator: TabLayoutMediator? = null
-    private val tabs = listOf("Styles", "Font", "Appearance", "Format")
+    private val tabs = listOf("Styles", "Font", "Appearance", "3D", "Format")
     private lateinit var adapter: TextAdjustmentsPagerAdapter
 
     private val viewModel: CanvasViewModel by activityViewModels()
@@ -102,6 +102,16 @@ class TextAdjustmentsFragment : androidx.fragment.app.Fragment() {
                 binding.viewPager.post {
                     if (_binding == null) return@post
                     binding.viewPager.setCurrentItem(2, false)
+                }
+            }
+        }
+
+        viewModel.open3DTab.observe(viewLifecycleOwner) { open3d ->
+            if (!isAdded || _binding == null) return@observe
+            if (open3d == true) {
+                binding.viewPager.post {
+                    if (_binding == null) return@post
+                    binding.viewPager.setCurrentItem(3, false)
                 }
             }
         }

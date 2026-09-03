@@ -16,7 +16,6 @@
         android:paddingTop="12dp"
         android:paddingBottom="8dp"
         android:background="@drawable/ic_editor_header"
-        android:backgroundTint="@color/white"
         android:translationZ="6dp"
         android:outlineSpotShadowColor="@color/shadowColor"
         app:layout_constraintEnd_toEndOf="parent"

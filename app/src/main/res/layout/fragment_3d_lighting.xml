@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/white"
+    android:paddingStart="10dp"
+    android:paddingTop="6dp"
+    android:paddingEnd="10dp"
+    android:paddingBottom="6dp">
+
+    <!-- Top Container: 84dp Angle Pad on Left + Intensity & Ambient on Right -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/topLightingContainer"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <com.webscare.urducanvas.common.views.Text3DPadView
+            android:id="@+id/lightingPad"
+            android:layout_width="84dp"
+            android:layout_height="84dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <LinearLayout
+            android:id="@+id/topSlidersContainer"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:orientation="vertical"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/lightingPad"
+            app:layout_constraintTop_toTopOf="@id/lightingPad">
+
+            <com.webscare.urducanvas.common.views.Custom3DSliderView
+                android:id="@+id/sliderIntensity"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+            <com.webscare.urducanvas.common.views.Custom3DSliderView
+                android:id="@+id/sliderAmbient"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp" />
+
+        </LinearLayout>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- Bottom Row: Softness & Highlight (Side by Side) -->
+    <com.webscare.urducanvas.common.views.Custom3DSliderView
+        android:id="@+id/sliderSoftness"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="6dp"
+        app:layout_constraintEnd_toStartOf="@id/sliderHighlight"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/topLightingContainer" />
+
+    <com.webscare.urducanvas.common.views.Custom3DSliderView
+        android:id="@+id/sliderHighlight"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="6dp"
+        android:layout_marginTop="8dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/sliderSoftness"
+        app:layout_constraintTop_toBottomOf="@id/topLightingContainer" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
