@@ -50,6 +50,19 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@id/topGuide">
 
+        <ImageView
+            android:id="@+id/back"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:backgroundTint="@color/contrast"
+            app:tint="@color/black"
+            android:padding="7dp"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/button_bg_round"
+            android:src="@drawable/ic_back"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"/>
+
         <TextView
             android:id="@+id/title"
             android:layout_width="wrap_content"
@@ -57,10 +70,11 @@
             android:text="@string/shape_properties"
             android:textColor="@color/black"
             android:fontFamily="@font/bold"
-            android:layout_marginTop="10dp"
+            android:layout_marginStart="10dp"
             android:textSize="16sp"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"/>
+            app:layout_constraintStart_toEndOf="@id/back"
+            app:layout_constraintTop_toTopOf="@id/back"
+            app:layout_constraintBottom_toBottomOf="@id/back"/>
 
         <!-- Add image / Replace image inside shape -->
         <ImageView
@@ -73,8 +87,8 @@
             app:tint="@color/black"
             android:src="@drawable/ic_import"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="@id/title"
-            app:layout_constraintBottom_toBottomOf="@id/title"
+            app:layout_constraintTop_toTopOf="@id/back"
+            app:layout_constraintBottom_toBottomOf="@id/back"
             android:layout_marginEnd="@dimen/_5sdp"/>
 
         <!-- Edit masked image — only visible when shape has image -->
@@ -89,8 +103,8 @@
             app:tint="@color/black"
             android:src="@drawable/ic_edit"
             app:layout_constraintEnd_toStartOf="@id/addImage"
-            app:layout_constraintTop_toTopOf="@id/title"
-            app:layout_constraintBottom_toBottomOf="@id/title"
+            app:layout_constraintTop_toTopOf="@id/back"
+            app:layout_constraintBottom_toBottomOf="@id/back"
             android:layout_marginEnd="@dimen/_5sdp"/>
 
     </androidx.constraintlayout.widget.ConstraintLayout>

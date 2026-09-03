@@ -148,6 +148,7 @@ class AdjustmentsParentFragment : androidx.fragment.app.Fragment() {
 
         binding.viewPager.isUserInputEnabled = false
         binding.replaceImage.addPressEffect { pickImage.launch("image/*") }
+        binding.back.addPressEffect { findNavController().navigateUp() }
     }
 
     private fun setupTabLayout() {

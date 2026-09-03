@@ -2191,7 +2191,7 @@ class CanvasViewModel @Inject constructor(
     /** Call this when the CanvasView fires “I just picked this color: 0xAARRGGBB” */
     fun finishPicking(color: Int) {
         when (_activePicker.value) {
-            PickerTarget.EYE_DROPPER_BACKGROUND -> setCanvasBackgroundColor(color)
+            PickerTarget.EYE_DROPPER_BACKGROUND -> setBackgroundLayerColor(color)
             PickerTarget.EYE_DROPPER_OVERLAY -> setElementOverlay(color)
             PickerTarget.EYE_DROPPER_TEXT_FILL -> setTextColor(color)
             PickerTarget.EYE_DROPPER_TEXT_STROKE -> setTextBorder(
@@ -2209,7 +2209,7 @@ class CanvasViewModel @Inject constructor(
             }
 
             PickerTarget.EYE_DROPPER_LABEL -> setTextLabel(true, color, _labelShape.value!!)
-            PickerTarget.COLOR_PICKER_BACKGROUND -> setCanvasBackgroundColor(color)
+            PickerTarget.COLOR_PICKER_BACKGROUND -> setBackgroundLayerColor(color)
             PickerTarget.COLOR_PICKER_OVERLAY -> setElementOverlay(color)
             PickerTarget.COLOR_PICKER_TEXT_FILL -> setTextColor(color)
             PickerTarget.COLOR_PICKER_TEXT_STROKE -> setTextBorder(
@@ -3669,9 +3669,25 @@ class CanvasViewModel @Inject constructor(
     }
 
     fun setCanvasBackgroundColor(color: Int) {
-        val previousColor = _backgroundColor.value ?: Color.WHITE
+        val previousColor = _backgroundColor.value
         if (color != previousColor) {
             _backgroundColor.value = color
+        }
+    }
+
+    fun setBackgroundLayerColor(color: Int) {
+        val currentList = _canvasElements.value ?: emptyList()
+        var changed = false
+        val updatedList = currentList.map { element ->
+            if (element.type == ElementType.BACKGROUND) {
+                changed = true
+                element.copy(backgroundColor = color, paintColor = color, fillGradient = null, bitmap = null).apply {
+                    updatePaintProperties()
+                }
+            } else element
+        }
+        if (changed) {
+            _canvasElements.value = updatedList
         }
     }
 
@@ -4288,14 +4304,14 @@ class CanvasViewModel @Inject constructor(
         val isNightMode = (context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
         val defaultBgColor = if (isNightMode) Color.BLACK else ResourcesCompat.getColor(context.resources, R.color.contrast, null)
 
-        // otherwise create and insert one
+        // otherwise create and insert one - artboard always remains WHITE
         val bg = CanvasElement(
             context = context,
             type = ElementType.BACKGROUND,
             x = size.width / 2f,
             y = size.height / 2f,
-            paintColor = defaultBgColor,
-            backgroundColor = defaultBgColor,
+            paintColor = Color.WHITE,
+            backgroundColor = Color.WHITE,
             fillGradient = null,
             bitmap = null
         ).apply {
@@ -4307,7 +4323,9 @@ class CanvasViewModel @Inject constructor(
 
         // prepend it so it’s always drawn first
         _canvasElements.value = listOf(bg) + (_canvasElements.value ?: emptyList())
-        _backgroundColor.value = defaultBgColor
+        if (_backgroundColor.value == null || _backgroundColor.value == Color.WHITE) {
+            _backgroundColor.value = defaultBgColor
+        }
     }
 
     fun addText(text: String, context: Context) {

@@ -35,19 +35,33 @@
         android:orientation="vertical"
         android:id="@+id/endGuide"/>
 
-    <!-- ── Row 1: title ── -->
+    <!-- ── Row 1: back + title ── -->
+    <ImageView
+        android:id="@+id/back"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:layout_marginStart="10dp"
+        android:background="@drawable/button_bg_round"
+        android:backgroundTint="@color/contrast"
+        app:tint="@color/black"
+        android:padding="7dp"
+        android:layout_marginTop="6dp"
+        android:src="@drawable/ic_back"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/topGuide"/>
+
     <TextView
         android:id="@+id/title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:fontFamily="@font/bold"
-        android:layout_marginStart="18dp"
-        android:layout_marginTop="10dp"
+        android:layout_marginStart="10dp"
         android:text="@string/text_properties"
         android:textColor="@color/black"
         android:textSize="16sp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/topGuide"/>
+        app:layout_constraintBottom_toBottomOf="@id/back"
+        app:layout_constraintStart_toEndOf="@id/back"
+        app:layout_constraintTop_toTopOf="@id/back"/>
 
     <LinearLayout
         android:id="@+id/groupToggleContainer"
@@ -58,8 +72,8 @@
         android:visibility="gone"
         android:layout_marginStart="8dp"
         app:layout_constraintStart_toEndOf="@id/title"
-        app:layout_constraintTop_toTopOf="@id/title"
-        app:layout_constraintBottom_toBottomOf="@id/title">
+        app:layout_constraintTop_toTopOf="@id/back"
+        app:layout_constraintBottom_toBottomOf="@id/back">
 
         <ImageView
             android:id="@+id/btnPrevGroupTab"
@@ -93,7 +107,7 @@
         android:layout_marginTop="4dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/title">
+        app:layout_constraintTop_toBottomOf="@id/back">
 
         <LinearLayout
             android:id="@+id/tabRowContent"

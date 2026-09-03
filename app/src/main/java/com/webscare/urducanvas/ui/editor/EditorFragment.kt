@@ -870,6 +870,7 @@ class EditorFragment : Fragment() {
         viewModel.backgroundColor.observe(viewLifecycleOwner) { color ->
             if (isAdded) {
                 color?.let {
+                    binding.canvasContainer.setBackgroundColor(it)
                     binding.editorRoot.setBackgroundColor(it)
                     scheduleJsonSave()
                 }
@@ -3090,6 +3091,7 @@ class EditorFragment : Fragment() {
      * art-board element. Anchored at the raw touch coordinates.
      */
 
+    @SuppressLint("UseKtx")
     private fun showCanvasPopupMenu(touchRawX: Float, touchRawY: Float) {
         if (!isAdded) return
 
@@ -3120,12 +3122,12 @@ class EditorFragment : Fragment() {
 
         // ── Background color: contrast / black swatches ──
         val contrastColor = ContextCompat.getColor(requireContext(), R.color.contrast)
-        val blackColor    = Color.BLACK
+        val blackColor    = ContextCompat.getColor(requireContext(), R.color.black)
 
         val currentBgColor = viewModel.backgroundColor.value ?: contrastColor
 
         val isContrastSelected = currentBgColor == contrastColor
-        val isDarkSelected = currentBgColor == blackColor || currentBgColor == Color.parseColor("#2B2B2B")
+        val isDarkSelected = currentBgColor == blackColor || currentBgColor == ContextCompat.getColor(requireContext(), R.color.black)
 
         fun bindColorSwatch(
             outer: com.google.android.material.card.MaterialCardView,

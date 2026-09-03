@@ -7,8 +7,10 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import com.webscare.urducanvas.R
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.enums.PickerTarget
 import com.webscare.urducanvas.common.utils.ColorPickerDialog
@@ -79,7 +81,7 @@ class ColorPickerFragment : Fragment() {
 
         return when (target) {
             PickerTarget.COLOR_PICKER_BACKGROUND, PickerTarget.EYE_DROPPER_BACKGROUND -> {
-                viewModel.backgroundColor.value ?: ContextCompat.getColor(requireContext(), R.color.contrast)
+                element?.backgroundColor ?: Color.WHITE
             }
             PickerTarget.COLOR_PICKER_OVERLAY, PickerTarget.EYE_DROPPER_OVERLAY -> {
                 val overlay = element?.overlayColor ?: Color.TRANSPARENT

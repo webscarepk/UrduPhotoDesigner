@@ -14,19 +14,33 @@
         app:layout_constraintGuide_percent="0.01"
         android:id="@+id/topGuide"/>
 
-    <!-- ── Row 1: title (Table Properties) ── -->
+    <!-- ── Row 1: back + title (Table Properties) ── -->
+    <ImageView
+        android:id="@+id/back"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:layout_marginStart="10dp"
+        android:layout_marginTop="6dp"
+        android:background="@drawable/button_bg_round"
+        android:backgroundTint="@color/contrast"
+        app:tint="@color/black"
+        android:padding="7dp"
+        android:src="@drawable/ic_back"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/topGuide" />
+
     <TextView
         android:id="@+id/title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="18dp"
-        android:layout_marginTop="10dp"
+        android:layout_marginStart="10dp"
         android:fontFamily="@font/bold"
         android:text="@string/table_properties"
         android:textColor="@color/black"
         android:textSize="16sp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/topGuide" />
+        app:layout_constraintBottom_toBottomOf="@id/back"
+        app:layout_constraintStart_toEndOf="@id/back"
+        app:layout_constraintTop_toTopOf="@id/back" />
 
     <!-- ── Row 2: TabLayout & Search (Edge-to-edge container, no guide clipping) ── -->
     <!-- ── Row 2: [searchIcon | searchBar] [TabLayout] ── -->
@@ -37,7 +51,7 @@
         android:layout_marginTop="4dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/title">
+        app:layout_constraintTop_toBottomOf="@id/back">
 
         <LinearLayout
             android:id="@+id/tabRowContent"

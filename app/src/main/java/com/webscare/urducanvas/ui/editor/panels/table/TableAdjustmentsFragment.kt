@@ -82,6 +82,10 @@ class TableAdjustmentsFragment : Fragment() {
 
         setupTabLayout()
         setupSearchBar()
+
+        binding.back.addPressEffect {
+            findNavController().navigateUp()
+        }
     }
 
     private fun setupTabLayout() {
