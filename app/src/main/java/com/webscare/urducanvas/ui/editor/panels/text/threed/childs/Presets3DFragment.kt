@@ -49,9 +49,10 @@ class Presets3DFragment : Fragment() {
         // "None" stays at the head of the list — it is the only way back to flat text
         // once a preset has been applied.
         val builtIns = Text3DData.PRESETS.map { it.asStylePreset() }
+        // Drop the styles panel's synthetic None — this grid already leads with its own.
         val library = TextStylesRepository.getPresetsByCategory(
             PresetCategory.THREE_D, requireContext()
-        )
+        ).filterNot { it.id == com.webscare.urducanvas.data.model.TextStylePreset.NONE_ID }
 
         adapter = TextStylesGridAdapter(builtIns + library) { preset ->
             val builtInId = preset.id.removePrefix(BUILT_IN_PREFIX)

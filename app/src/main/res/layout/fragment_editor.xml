@@ -72,8 +72,8 @@
         android:paddingHorizontal="20dp"
         android:backgroundTint="@color/white"
         android:translationZ="6dp"
-        android:outlineSpotShadowColor="@color/shadowColor"
         android:background="@drawable/ic_editor_header"
+        android:outlineProvider="none"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent">
@@ -153,12 +153,13 @@
                 android:id="@+id/tableTools"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="5dp"
                 android:orientation="horizontal"
                 android:clipChildren="false"
                 android:clipToPadding="false"
                 android:visibility="gone"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintStart_toEndOf="@id/back"
                 app:layout_constraintTop_toTopOf="parent">
 
                 <ImageView
@@ -185,38 +186,27 @@
                     app:tint="@color/black" />
             </LinearLayout>
 
-            <!-- Draw Mode Left Tools (Clear Drawing, Reset Brush Defaults) -->
+            <!-- Draw Mode Left Tools (Reset Drawing). Back is the shared toolbar button. -->
             <LinearLayout
                 android:id="@+id/drawTools"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="5dp"
                 android:orientation="horizontal"
                 android:clipChildren="false"
                 android:clipToPadding="false"
                 android:visibility="gone"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintStart_toEndOf="@id/back"
                 app:layout_constraintTop_toTopOf="parent">
-
-                <ImageView
-                    android:id="@+id/btnClearDrawing"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:background="@drawable/button_bg_round"
-                    android:backgroundTint="@color/contrast"
-                    android:contentDescription="Clear Drawing"
-                    android:padding="8dp"
-                    android:src="@drawable/ic_delete"
-                    app:tint="@color/black" />
 
                 <ImageView
                     android:id="@+id/btnResetBrushDefaults"
                     android:layout_width="32dp"
                     android:layout_height="32dp"
-                    android:layout_marginStart="5dp"
                     android:background="@drawable/button_bg_round"
                     android:backgroundTint="@color/contrast"
-                    android:contentDescription="Reset Brush Defaults"
+                    android:contentDescription="Reset Drawing"
                     android:padding="7dp"
                     android:src="@drawable/ic_refresh"
                     app:tint="@color/black" />
@@ -320,6 +310,18 @@
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
+    <!-- Bottom-only lift for the header. See header_bottom_shadow.xml. -->
+    <View
+        android:id="@+id/headerBottomShadow"
+        android:layout_width="0dp"
+        android:layout_height="10dp"
+        android:background="@drawable/header_bottom_shadow"
+        android:importantForAccessibility="no"
+        android:translationZ="6dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/header" />
+
     <FrameLayout
         android:id="@+id/canvasContainer"
         android:layout_width="0dp"
@@ -328,6 +330,45 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@id/header"/>
+
+    <!--
+        Eraser kit. Occupies the alignment kit's slot, because in eraser mode there is
+        nothing to align and the two never need to be on screen together. Size and softness
+        are the only two things being adjusted, so a dedicated panel was a whole sheet for
+        two numbers; these ride in and out on the same show/hide button the alignment kit
+        uses.
+    -->
+    <LinearLayout
+        android:id="@+id/eraserKit"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/alignment_kit_bg"
+        android:orientation="vertical"
+        android:paddingHorizontal="4dp"
+        android:paddingVertical="8dp"
+        android:translationZ="6dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="@id/canvasContainer"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@id/canvasContainer">
+
+        <com.webscare.urducanvas.common.views.VerticalSliderView
+            android:id="@+id/eraserSizeSlider"
+            android:layout_width="30dp"
+            android:layout_height="112dp" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginVertical="6dp"
+            android:background="@color/appColorLow" />
+
+        <com.webscare.urducanvas.common.views.VerticalSliderView
+            android:id="@+id/eraserSoftSlider"
+            android:layout_width="30dp"
+            android:layout_height="112dp" />
+
+    </LinearLayout>
 
     <LinearLayout
         android:id="@+id/alignmentKit"

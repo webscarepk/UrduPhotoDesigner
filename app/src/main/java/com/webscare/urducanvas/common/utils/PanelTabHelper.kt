@@ -25,12 +25,19 @@ object PanelTabHelper {
         viewPager: ViewPager2,
         titles: List<String>,
         onTabSelected: ((position: Int) -> Unit)? = null
-    ) {
+    ): TabLayoutMediator {
         val context = tabLayout.context
         val boldFont = ResourcesCompat.getFont(context, R.font.bold) ?: Typeface.DEFAULT_BOLD
         val regularFont = ResourcesCompat.getFont(context, R.font.regular) ?: Typeface.DEFAULT
 
-        TabLayoutMediator(tabLayout, viewPager) { tab, position ->
+        // smoothScroll = false is deliberate. Every panel pager runs with
+        // isUserInputEnabled = false, so there is no swipe gesture for the animation to
+        // continue — and animating across three pages made ViewPager2 create, bind and
+        // recycle the intermediate fragments in one gesture. That race is what made the
+        // 3D tab come up showing the Format panel on a cold jump from Styles: page 4's
+        // fragment won the attach while page 3 was still being built. Jumping straight to
+        // the target page creates exactly one fragment and removes the race.
+        val mediator = TabLayoutMediator(tabLayout, viewPager, true, false) { tab, position ->
             val customView = LayoutInflater.from(context)
                 .inflate(R.layout.view_panel_tab, tabLayout, false)
             val titleView = customView.findViewById<TextView>(R.id.tabTitle)
@@ -38,7 +45,8 @@ object PanelTabHelper {
             titleView.text = title
             tab.customView = customView
             tab.contentDescription = title
-        }.attach()
+        }
+        mediator.attach()
 
         // Apply initial selection state
         tabLayout.post {
@@ -63,6 +71,8 @@ object PanelTabHelper {
                 updateTabStyle(tab, true, boldFont, regularFont)
             }
         })
+
+        return mediator
     }
 
     fun setTabEdited(tabLayout: TabLayout, position: Int, edited: Boolean) {
@@ -128,9 +138,8 @@ fun TabLayout.setupPanelTabs(
     viewPager: ViewPager2,
     titles: List<String>,
     onTabSelected: ((position: Int) -> Unit)? = null
-) {
+): TabLayoutMediator =
     PanelTabHelper.setupCustomPanelTabs(this, viewPager, titles, onTabSelected)
-}
 
 fun TabLayout.setTabEdited(position: Int, edited: Boolean) {
     PanelTabHelper.setTabEdited(this, position, edited)

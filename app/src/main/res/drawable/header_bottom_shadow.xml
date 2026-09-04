@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Shadow cast *downward* from the editor header.
+
+    The header used to rely on elevation, which throws a shadow on every side — including
+    upward, where it leaked over the status bar. A gradient strip below the header gives
+    the same lift with no top edge, matching how the panel container already does it.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="270"
+        android:startColor="#14000000"
+        android:endColor="@android:color/transparent"
+        android:type="linear" />
+</shape>

@@ -125,7 +125,7 @@ class TextAdjustmentsFragment : androidx.fragment.app.Fragment() {
 
     private fun setupTabLayout() {
         mediator?.detach()
-        binding.tabLayout.setupPanelTabs(binding.viewPager, tabs) { position ->
+        mediator = binding.tabLayout.setupPanelTabs(binding.viewPager, tabs) { position ->
             if (position != 1) {
                 mainViewModel.setQuery("")
             }

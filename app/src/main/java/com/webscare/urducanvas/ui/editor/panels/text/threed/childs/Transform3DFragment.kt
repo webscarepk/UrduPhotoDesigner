@@ -42,7 +42,7 @@ class Transform3DFragment : Fragment() {
             snapInterval = 15
             snapThreshold = 3
             onValueChanged = { v ->
-                viewModel.updateText3D(pushToUndo = false) { it.rotation.x = v.toFloat() }
+                viewModel.updateText3D(pushToUndo = false, enableSection = CanvasViewModel.Text3DSection.TRANSFORM) { it.rotation.x = v.toFloat() }
             }
             onDragStateChanged = { dragging -> viewModel.setPagingLocked(dragging) }
         }
@@ -55,7 +55,7 @@ class Transform3DFragment : Fragment() {
             snapInterval = 15
             snapThreshold = 3
             onValueChanged = { v ->
-                viewModel.updateText3D(pushToUndo = false) { it.rotation.y = v.toFloat() }
+                viewModel.updateText3D(pushToUndo = false, enableSection = CanvasViewModel.Text3DSection.TRANSFORM) { it.rotation.y = v.toFloat() }
             }
             onDragStateChanged = { dragging -> viewModel.setPagingLocked(dragging) }
         }
@@ -68,7 +68,7 @@ class Transform3DFragment : Fragment() {
             snapInterval = 15
             snapThreshold = 3
             onValueChanged = { v ->
-                viewModel.updateText3D(pushToUndo = false) { it.rotation.z = v.toFloat() }
+                viewModel.updateText3D(pushToUndo = false, enableSection = CanvasViewModel.Text3DSection.TRANSFORM) { it.rotation.z = v.toFloat() }
             }
             onDragStateChanged = { dragging -> viewModel.setPagingLocked(dragging) }
         }
@@ -82,7 +82,10 @@ class Transform3DFragment : Fragment() {
             minValue = 0
             maxValue = 100
             onValueChanged = { v ->
-                viewModel.updateText3D(pushToUndo = false) {
+                viewModel.updateText3D(
+                    pushToUndo = false,
+                    enableSection = CanvasViewModel.Text3DSection.TRANSFORM
+                ) {
                     it.perspective.strength = strengthFor(v)
                 }
             }
@@ -98,7 +101,7 @@ class Transform3DFragment : Fragment() {
             snapInterval = 10
             snapThreshold = 3
             onValueChanged = { v ->
-                viewModel.updateText3D(pushToUndo = false) { it.position.z = v.toFloat() }
+                viewModel.updateText3D(pushToUndo = false, enableSection = CanvasViewModel.Text3DSection.TRANSFORM) { it.position.z = v.toFloat() }
             }
             onDragStateChanged = { dragging -> viewModel.setPagingLocked(dragging) }
         }

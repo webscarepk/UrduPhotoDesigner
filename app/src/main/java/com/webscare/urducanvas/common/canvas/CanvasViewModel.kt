@@ -358,6 +358,24 @@ class CanvasViewModel @Inject constructor(
     private val _currentBrushStyle = MutableLiveData<BrushStyle?>(null)
     val currentBrushStyle: LiveData<BrushStyle?> = _currentBrushStyle
 
+    /**
+     * Which brush shelf the Style tab is showing; null means "All".
+     *
+     * The category picker lives in the draw panel's tab row (the same drill-in the text
+     * panel uses for preset categories) while the grid it filters lives in a child
+     * fragment, so the selection has to travel through the shared view model.
+     */
+    private val _brushCategoryFilter =
+        MutableLiveData<com.webscare.urducanvas.common.canvas.enums.BrushCategory?>(null)
+    val brushCategoryFilter: LiveData<com.webscare.urducanvas.common.canvas.enums.BrushCategory?> =
+        _brushCategoryFilter
+
+    fun setBrushCategoryFilter(
+        category: com.webscare.urducanvas.common.canvas.enums.BrushCategory?
+    ) {
+        if (_brushCategoryFilter.value != category) _brushCategoryFilter.value = category
+    }
+
     private val _brushHardness = MutableLiveData(1f)   // softness vs hardness
     val brushHardness: LiveData<Float> = _brushHardness
 
@@ -985,7 +1003,19 @@ class CanvasViewModel @Inject constructor(
     fun commitDrawSession() {
         val session = _activeDrawSession ?: return
         val canvasView = getCanvasView()
+
+        // Snapshot on THIS thread, before the coroutine starts.
+        //
+        // exitDrawingMode() calls this and then immediately sets isDrawingMode = false,
+        // which runs the observer synchronously → setDrawingMode(false) →
+        // clearDrawingSessionState(), and that *recycles* the session bitmap. The
+        // coroutine below would then find a recycled bitmap, fall through to the
+        // drawStrokes branch — empty for an erase, since erasing removes pixels rather
+        // than adding strokes — and commit nothing. That is why pressing Done after
+        // erasing left the original image untouched.
         val sessionBmp = canvasView?.getDrawingSessionBitmap()
+            ?.takeIf { !it.isRecycled }
+            ?.copy(Bitmap.Config.ARGB_8888, false)
 
         _canvasActions.removeAll { it is CanvasAction.DrawSessionStroke }
 
@@ -994,7 +1024,7 @@ class CanvasViewModel @Inject constructor(
             val canvasH = _canvasSize.value?.height?.toInt() ?: 0
 
             val fullBitmap: Bitmap? = if (sessionBmp != null && !sessionBmp.isRecycled) {
-                sessionBmp.copy(Bitmap.Config.ARGB_8888, false)
+                sessionBmp
             } else if (!session.drawStrokes.isNullOrEmpty() && canvasW > 0 && canvasH > 0) {
                 val bmp = createBitmap(canvasW, canvasH)
                 val c = android.graphics.Canvas(bmp)
@@ -2196,7 +2226,13 @@ class CanvasViewModel @Inject constructor(
     fun finishPicking(color: Int) {
         when (_activePicker.value) {
             PickerTarget.EYE_DROPPER_BACKGROUND -> setBackgroundLayerColor(color)
-            PickerTarget.EYE_DROPPER_OVERLAY -> setElementOverlay(color)
+            // Order matters: write the sampled colour first, then turn the feature on.
+            // enableFeature() runs applyOverlayPresets(), which stamps #FF746C over any
+            // still-transparent overlay — so enabling first would flash the preset tint.
+            PickerTarget.EYE_DROPPER_OVERLAY -> {
+                setElementOverlay(color)
+                enableFeature("Overlay")
+            }
             PickerTarget.EYE_DROPPER_TEXT_FILL -> setTextColor(color)
             PickerTarget.EYE_DROPPER_TEXT_STROKE -> setTextBorder(
                 true, color, _borderWidth.value!!
@@ -4219,6 +4255,12 @@ class CanvasViewModel @Inject constructor(
         ).apply {
             svgDrawable = drawable
             scale = scaleFactor
+
+            // Same reasoning as addSticker(): freeze the authored slot size rather than letting
+            // it be re-derived from the picture. This also pins the size across reloads, where
+            // the SVG is re-rendered and re-trimmed and can come back a few pixels different.
+            logicalContentWidth = svgW
+            logicalContentHeight = svgH
         }
 
         element.updatePaintProperties()
@@ -4287,6 +4329,15 @@ class CanvasViewModel @Inject constructor(
             isPremium = isPremium
         ).apply {
             scale = initialScale     // ← canvas matrix handles display size
+
+            // Record the slot size explicitly instead of leaving it implied by bitmap.width.
+            // Identical to what getLocalContentWidth() already falls back to, so nothing about
+            // in-editor rendering changes — but it writes the layer's authored size into the
+            // exported JSON. Template consumers (WebsCareCanvas) swap this bitmap for the end
+            // user's own artwork, and without a recorded size the layer would resize itself to
+            // whatever they pass in.
+            logicalContentWidth = imageW
+            logicalContentHeight = imageH
         }
 
         element.updatePaintProperties()
@@ -4922,7 +4973,26 @@ class CanvasViewModel @Inject constructor(
     }
 
     // ── 3D Text Manipulation Methods ──────────────────────────────────────────
-    fun updateText3D(pushToUndo: Boolean = false, transform: (Text3DData) -> Unit) {
+    /**
+     * The five independently switchable parts of the 3D panel.
+     *
+     * Each maps to its own `enabled` flag on [Text3DData]; the canvas reads them
+     * separately, so turning the light off must not touch the material and vice versa.
+     */
+    enum class Text3DSection { TRANSFORM, EXTRUSION, MATERIAL, LIGHTING }
+
+    /**
+     * @param enableSection when set, the section is switched on as part of the edit.
+     *   Adjusting a control is how a user says "I want this" — a swatch that applies but
+     *   leaves its section off, or worse leaves the flag stale so the next unrelated
+     *   toggle appears to undo it, is the panel arguing with itself. The rail's own
+     *   on/off toggle deliberately passes null so it can still switch a section off.
+     */
+    fun updateText3D(
+        pushToUndo: Boolean = false,
+        enableSection: Text3DSection? = null,
+        transform: (Text3DData) -> Unit
+    ) {
         val currentList = _canvasElements.value?.toMutableList() ?: return
         val context = currentList.firstOrNull()?.context
         val selectedGroupIds = currentList.filter { it.isSelected && it.type == ElementType.GROUP }.map { it.id }.toSet()
@@ -4936,6 +5006,13 @@ class CanvasViewModel @Inject constructor(
                 val d = element.text3d?.deepCopy() ?: Text3DData(enabled = true)
                 d.enabled = true
                 transform(d)
+                when (enableSection) {
+                    Text3DSection.TRANSFORM -> d.rotation.enabled = true
+                    Text3DSection.EXTRUSION -> d.extrusion.enabled = true
+                    Text3DSection.MATERIAL -> d.material.enabled = true
+                    Text3DSection.LIGHTING -> d.lighting.enabled = true
+                    null -> Unit
+                }
                 val updated = element.copy(text3d = d)
                 val tf = element.originalTypeface ?: element.paint.typeface ?: element.applyTypefaceFromFontList(context)
                 updated.originalTypeface = tf

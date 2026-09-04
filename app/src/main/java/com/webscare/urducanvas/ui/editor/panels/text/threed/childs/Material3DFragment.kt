@@ -24,7 +24,7 @@ import com.webscare.urducanvas.common.canvas.model.Text3DSurfaceShading
 import com.webscare.urducanvas.common.utils.Constants
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 import com.webscare.urducanvas.databinding.Fragment3dMaterialBinding
-import com.webscare.urducanvas.databinding.ItemMaterialSurfaceBinding
+import com.webscare.urducanvas.databinding.ItemMaterialSwatchBinding
 import com.webscare.urducanvas.ui.editor.panels.text.appearance.adapters.ColorsAdapter
 import com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.ColorPickerFragment
 import com.webscare.urducanvas.ui.editor.panels.text.appearance.childs.gradient.GradientEditorFragment
@@ -33,14 +33,15 @@ import com.webscare.urducanvas.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
 /**
- * Three screens, one fragment:
- *   1. Surfaces      - the swatch row. Tapping the selected swatch opens screen 2.
- *   2. Adjustments   - the standard solid/gradient colour panel, with a tick to come back
- *                      and a settings icon that opens screen 3.
- *   3. Properties    - roughness / metallic / specular / reflection.
+ * The 3D material panel.
  *
- * Screens 2 and 3 lock the parent pager so a vertical drag edits the panel rather than
- * flicking to the next 3D section.
+ * One screen, not three: the face pill, the Solid / Gradient / Materials segment and the
+ * swatch grid. Picking a finish and picking a colour used to be two screens deep apart,
+ * which made the common case - "make it brushed silver" - a three-tap journey.
+ *
+ * Roughness, metallic, specular and reflection still sit one level deeper behind the
+ * settings glyph; that screen locks the parent pager so a vertical drag edits a slider
+ * rather than flicking to the next 3D section.
  */
 @AndroidEntryPoint
 class Material3DFragment : Fragment() {
@@ -51,15 +52,14 @@ class Material3DFragment : Fragment() {
     private val viewModel: CanvasViewModel by activityViewModels()
     private val mainViewModel: MainViewModel by activityViewModels()
 
-    private lateinit var surfaceAdapter: SurfaceAdapter
     private lateinit var colorsAdapter: ColorsAdapter
     private lateinit var gradientsAdapter: GradientsAdapter
+    private lateinit var materialSwatchAdapter: MaterialSwatchAdapter
 
     /** false = editing the front face, true = editing the extrusion side. */
     private var editingSide: Boolean = false
 
-    /** Mirrors [com.webscare.urducanvas.common.canvas.model.Text3DMaterial.sameAsFront];
-     *  the round tick has no checked state of its own to read back. */
+    /** Mirrors [com.webscare.urducanvas.common.canvas.model.Text3DMaterial.sameAsFront]. */
     private var sameAsFront: Boolean = true
 
     override fun onCreateView(
@@ -73,7 +73,6 @@ class Material3DFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        setupSurfaceList()
         setupColorAndGradientLists()
         setupFaceTargeting()
         initSliders()
@@ -83,92 +82,67 @@ class Material3DFragment : Fragment() {
 
     // ── Screen switching ──────────────────────────────────────────────────────
 
-    private enum class Screen { SURFACES, ADJUSTMENTS, PROPERTIES }
+    private enum class Screen { MAIN, PROPERTIES }
 
     private fun showScreen(screen: Screen) {
         val b = _binding ?: return
-        b.rvSurfaces.visibility = if (screen == Screen.SURFACES) View.VISIBLE else View.GONE
-        b.layoutAdjustments.visibility = if (screen == Screen.ADJUSTMENTS) View.VISIBLE else View.GONE
+        b.layoutAdjustments.visibility = if (screen == Screen.MAIN) View.VISIBLE else View.GONE
         b.layoutProperties.visibility = if (screen == Screen.PROPERTIES) View.VISIBLE else View.GONE
-        viewModel.setPagingLocked(screen != Screen.SURFACES)
+        // Only the deeper screen locks the pager; the main one is the panel itself.
+        viewModel.setPagingLocked(screen != Screen.MAIN)
     }
 
     private fun initHeaderButtons() {
-        binding.btnDone.addPressEffect { showScreen(Screen.SURFACES) }
+        binding.btnDone.addPressEffect { viewModel.setPagingLocked(false) }
         binding.btnSettings.addPressEffect { showScreen(Screen.PROPERTIES) }
-        binding.btnPropertiesDone.addPressEffect { showScreen(Screen.ADJUSTMENTS) }
-    }
-
-    // ── Surfaces ──────────────────────────────────────────────────────────────
-
-    private fun setupSurfaceList() {
-        surfaceAdapter = SurfaceAdapter(
-            list = Text3DData.SURFACES,
-            onSelect = { surfaceId ->
-                val current = viewModel.text3dData.value?.material?.surface ?: "plain"
-                if (current == surfaceId) {
-                    showScreen(Screen.ADJUSTMENTS)
-                } else {
-                    viewModel.updateText3D(pushToUndo = true) { it.material.surface = surfaceId }
-                    surfaceAdapter.setSelectedId(surfaceId)
-                }
-            },
-            onEditClick = { showScreen(Screen.ADJUSTMENTS) }
-        )
-        // Three rows deep: the surface list is long enough now that one row would be an
-        // endless flick, and a grid shows a whole family at a glance.
-        binding.rvSurfaces.layoutManager =
-            GridLayoutManager(requireContext(), 3, GridLayoutManager.HORIZONTAL, false)
-        binding.rvSurfaces.setHasFixedSize(true)
-        binding.rvSurfaces.adapter = surfaceAdapter
+        binding.btnPropertiesDone.addPressEffect { showScreen(Screen.MAIN) }
     }
 
     // ── Front / side targeting ────────────────────────────────────────────────
 
+    /** Which face the swatch lists below are editing. */
+    private enum class Face { FRONT, SIDE, BOTH }
+
+    private var face: Face = Face.BOTH
+
     private fun setupFaceTargeting() {
-        binding.tabFront.addPressEffect { setEditingSide(false) }
-        binding.tabSide.addPressEffect { setEditingSide(true) }
-
-        binding.cbSameAsFront.addPressEffect { setSameAsFront(!sameAsFront) }
-
-        renderSameAsFrontTick()
-        setEditingSide(false)
+        binding.tabFront.addPressEffect { setFace(Face.FRONT, userInitiated = true) }
+        binding.tabSide.addPressEffect { setFace(Face.SIDE, userInitiated = true) }
+        binding.tabBoth.addPressEffect { setFace(Face.BOTH, userInitiated = true) }
+        // Opening the panel is not an edit, so this pass must not switch the material on.
+        setFace(Face.BOTH, userInitiated = false)
     }
 
-    /** Writes the sync flag through to the model and repaints the little round tick. */
-    private fun setSameAsFront(checked: Boolean) {
-        sameAsFront = checked
-        renderSameAsFrontTick()
-        viewModel.updateText3D(pushToUndo = true) { data ->
-            data.material.sameAsFront = checked
-            if (checked) data.material.extrusionColor = data.material.frontColor
-        }
-        if (checked) setEditingSide(false) else setEditingSide(editingSide)
-    }
+    /**
+     * Three states where there used to be two plus a checkbox.
+     *
+     * "Same as front" was the checkbox's whole job, and it said the same thing the pill
+     * already implied: Both *is* the synced state. Folding it in returns a row of height
+     * to the swatches and removes a control that could contradict the pill.
+     */
+    private fun setFace(target: Face, userInitiated: Boolean) {
+        face = target
+        editingSide = target == Face.SIDE
+        sameAsFront = target == Face.BOTH
 
-    private fun renderSameAsFrontTick() {
-        val b = _binding ?: return
-        val ctx = context ?: return
-        b.ivSameAsFrontTick.setBackgroundResource(
-            if (sameAsFront) R.drawable.bg_round_check_on else R.drawable.bg_round_check_off
-        )
-        b.ivSameAsFrontTick.setImageResource(if (sameAsFront) R.drawable.ic_done else 0)
-        b.ivSameAsFrontTick.imageTintList =
-            ColorStateList.valueOf(ContextCompat.getColor(ctx, R.color.white))
-    }
-
-    private fun setEditingSide(side: Boolean) {
-        editingSide = side
         val b = _binding ?: return
         val ctx = context ?: return
         val active = ContextCompat.getColor(ctx, R.color.white)
         val inactive = ContextCompat.getColor(ctx, R.color.contrast)
-        b.tabFront.backgroundTintList = ColorStateList.valueOf(if (side) inactive else active)
-        b.tabSide.backgroundTintList = ColorStateList.valueOf(if (side) active else inactive)
-        // With the sides synced there is nothing separate to edit, so keep Side inert.
-        val sideEditable = !sameAsFront
-        b.tabSide.isEnabled = sideEditable
-        b.tabSide.alpha = if (sideEditable) 1f else 0.45f
+        b.tabFront.backgroundTintList =
+            ColorStateList.valueOf(if (target == Face.FRONT) active else inactive)
+        b.tabSide.backgroundTintList =
+            ColorStateList.valueOf(if (target == Face.SIDE) active else inactive)
+        b.tabBoth.backgroundTintList =
+            ColorStateList.valueOf(if (target == Face.BOTH) active else inactive)
+
+        viewModel.updateText3D(
+            pushToUndo = false,
+            enableSection = if (userInitiated) CanvasViewModel.Text3DSection.MATERIAL else null
+        ) { data ->
+            data.material.sameAsFront = sameAsFront
+            if (sameAsFront) data.material.extrusionColor = data.material.frontColor
+        }
         syncSelectedSwatch()
     }
 
@@ -181,7 +155,10 @@ class Material3DFragment : Fragment() {
     /** Writes a picked colour into whichever face is being edited, honouring the sync flag. */
     private fun applyPickedColor(color: Int) {
         val hex = String.format("#%06X", (0xFFFFFF and color))
-        viewModel.updateText3D(pushToUndo = true) { data ->
+        viewModel.updateText3D(
+            pushToUndo = true,
+            enableSection = CanvasViewModel.Text3DSection.MATERIAL
+        ) { data ->
             if (editingSide) {
                 data.material.extrusionColor = hex
             } else {
@@ -261,43 +238,76 @@ class Material3DFragment : Fragment() {
             adapter = gradientsAdapter
         }
 
-        binding.solid.addPressEffect {
-            if (!binding.colors.isVisible) togglePanels()
+        setupMaterialSwatches()
+
+        binding.solid.addPressEffect { showFillTab(FillTab.SOLID) }
+        binding.gradient.addPressEffect { showFillTab(FillTab.GRADIENT) }
+        binding.materials.addPressEffect { showFillTab(FillTab.MATERIALS) }
+
+        showFillTab(FillTab.SOLID, animate = false)
+    }
+
+    private enum class FillTab { SOLID, GRADIENT, MATERIALS }
+
+    private var fillTab = FillTab.SOLID
+
+    /**
+     * Three-way segment. Solid and Gradient set the colour alone; Materials sets a colour
+     * *and* the finish it belongs in, which is the pairing the swatch sheets are built on.
+     */
+    private fun showFillTab(tab: FillTab, animate: Boolean = true) {
+        val b = _binding ?: return
+        if (fillTab == tab && animate) return
+        fillTab = tab
+
+        val lists = mapOf(
+            FillTab.SOLID to b.colors,
+            FillTab.GRADIENT to b.gradients,
+            FillTab.MATERIALS to b.materialsList
+        )
+        val chips = mapOf(
+            FillTab.SOLID to b.solid,
+            FillTab.GRADIENT to b.gradient,
+            FillTab.MATERIALS to b.materials
+        )
+
+        val fade = 220L
+        lists.forEach { (key, view) ->
+            val show = key == tab
+            if (show) {
+                view.alpha = if (animate) 0f else 1f
+                view.visibility = View.VISIBLE
+                if (animate) view.animate().alpha(1f).setDuration(fade).start()
+            } else if (view.isVisible) {
+                if (animate) {
+                    view.animate().alpha(0f).setDuration(fade)
+                        .withEndAction { view.visibility = View.GONE }.start()
+                } else {
+                    view.visibility = View.GONE
+                }
+            }
         }
 
-        binding.gradient.addPressEffect {
-            if (!binding.gradients.isVisible) togglePanels()
+        val ctx = requireContext()
+        chips.forEach { (key, chip) ->
+            chip.backgroundTintList = ColorStateList.valueOf(
+                ContextCompat.getColor(ctx, if (key == tab) R.color.white else R.color.contrast)
+            )
         }
     }
 
-    private fun togglePanels() {
-        val fadeDuration = 220L
-        val showGradients = binding.gradients.isVisible
-
-        if (showGradients) {
-            binding.gradients.animate().alpha(0f).setDuration(fadeDuration).withEndAction {
-                binding.gradients.visibility = View.GONE
-                binding.colors.alpha = 0f
-                binding.colors.visibility = View.VISIBLE
-                binding.colors.animate().alpha(1f).setDuration(fadeDuration).start()
-            }.start()
-
-            binding.gradient.backgroundTintList =
-                ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.contrast))
-            binding.solid.backgroundTintList =
-                ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.white))
-        } else {
-            binding.colors.animate().alpha(0f).setDuration(fadeDuration).withEndAction {
-                binding.colors.visibility = View.GONE
-                binding.gradients.alpha = 0f
-                binding.gradients.visibility = View.VISIBLE
-                binding.gradients.animate().alpha(1f).setDuration(fadeDuration).start()
-            }.start()
-
-            binding.solid.backgroundTintList =
-                ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.contrast))
-            binding.gradient.backgroundTintList =
-                ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.white))
+    private fun setupMaterialSwatches() {
+        materialSwatchAdapter = MaterialSwatchAdapter { entry ->
+            // A named tone carries its own colour; a plain finish keeps whatever colour is
+            // already applied and only changes what the surface is made of.
+            entry.color?.let { applyPickedColor(it) }
+            viewModel.updateText3D(pushToUndo = true, enableSection = CanvasViewModel.Text3DSection.MATERIAL) { it.material.surface = entry.surface.id }
+            materialSwatchAdapter.setSelected(entry.label)
+        }
+        binding.materialsList.apply {
+            layoutManager = GridLayoutManager(requireContext(), 2, GridLayoutManager.HORIZONTAL, false)
+            setHasFixedSize(true)
+            adapter = materialSwatchAdapter
         }
     }
 
@@ -309,7 +319,7 @@ class Material3DFragment : Fragment() {
             minValue = 0
             maxValue = 100
             onValueChanged = { v ->
-                viewModel.updateText3D(pushToUndo = false) { it.material.roughness = v.toFloat() }
+                viewModel.updateText3D(pushToUndo = false, enableSection = CanvasViewModel.Text3DSection.MATERIAL) { it.material.roughness = v.toFloat() }
             }
             onDragStateChanged = { dragging -> viewModel.setPagingLocked(dragging) }
         }
@@ -319,7 +329,7 @@ class Material3DFragment : Fragment() {
             minValue = 0
             maxValue = 100
             onValueChanged = { v ->
-                viewModel.updateText3D(pushToUndo = false) { it.material.metallic = v.toFloat() }
+                viewModel.updateText3D(pushToUndo = false, enableSection = CanvasViewModel.Text3DSection.MATERIAL) { it.material.metallic = v.toFloat() }
             }
             onDragStateChanged = { dragging -> viewModel.setPagingLocked(dragging) }
         }
@@ -329,7 +339,7 @@ class Material3DFragment : Fragment() {
             minValue = 0
             maxValue = 100
             onValueChanged = { v ->
-                viewModel.updateText3D(pushToUndo = false) { it.material.specular = v.toFloat() }
+                viewModel.updateText3D(pushToUndo = false, enableSection = CanvasViewModel.Text3DSection.MATERIAL) { it.material.specular = v.toFloat() }
             }
             onDragStateChanged = { dragging -> viewModel.setPagingLocked(dragging) }
         }
@@ -339,7 +349,7 @@ class Material3DFragment : Fragment() {
             minValue = 0
             maxValue = 100
             onValueChanged = { v ->
-                viewModel.updateText3D(pushToUndo = false) { it.material.reflection = v.toFloat() }
+                viewModel.updateText3D(pushToUndo = false, enableSection = CanvasViewModel.Text3DSection.MATERIAL) { it.material.reflection = v.toFloat() }
             }
             onDragStateChanged = { dragging -> viewModel.setPagingLocked(dragging) }
         }
@@ -358,15 +368,16 @@ class Material3DFragment : Fragment() {
 
         viewModel.text3dData.observe(viewLifecycleOwner) { data ->
             val mat = data?.material ?: return@observe
-            surfaceAdapter.setSelectedId(mat.surface)
-            surfaceAdapter.setBaseColor(
-                runCatching { mat.frontColor.toColorInt() }.getOrDefault(Color.GRAY)
+            materialSwatchAdapter.setBaseColor(
+                runCatching { mat.frontColor.toColorInt() }.getOrDefault(Color.BLACK)
             )
+            materialSwatchAdapter.setSelectedSurface(mat.surface)
+            // A preset or an undo can flip the sync flag behind the panel's back; move the
+            // pill to match, but only when it actually disagrees, or setFace would write
+            // the model back on every emission.
             if (sameAsFront != mat.sameAsFront) {
-                sameAsFront = mat.sameAsFront
-                renderSameAsFrontTick()
+                setFace(if (mat.sameAsFront) Face.BOTH else Face.FRONT, userInitiated = false)
             }
-            setEditingSide(editingSide && !mat.sameAsFront)
             binding.sliderRoughness.value = mat.roughness.toInt()
             binding.sliderMetallic.value = mat.metallic.toInt()
             binding.sliderSpecular.value = mat.specular.toInt()
@@ -376,7 +387,6 @@ class Material3DFragment : Fragment() {
 
     override fun onDestroyView() {
         viewModel.setPagingLocked(false)
-        _binding?.rvSurfaces?.adapter = null
         _binding?.colors?.adapter = null
         _binding?.gradients?.adapter = null
         _binding = null
@@ -387,57 +397,72 @@ class Material3DFragment : Fragment() {
         fun newInstance() = Material3DFragment()
     }
 
-    // ── Surface swatches ──────────────────────────────────────────────────────
+    // ── Material swatches ─────────────────────────────────────────────────────
 
-    private inner class SurfaceAdapter(
-        private val list: List<Text3DSurface>,
-        private val onSelect: (String) -> Unit,
-        private val onEditClick: () -> Unit
-    ) : RecyclerView.Adapter<SurfaceAdapter.SurfaceViewHolder>() {
+    /**
+     * One swatch entry: either an abstract finish (Glossy, Chrome, Velvet), tinted by the
+     * live front colour, or a named tone (Pearl, Cobalt, Espresso) that carries its own
+     * colour *and* the finish it belongs in.
+     *
+     * Both live in one list because the panel no longer has a separate surfaces screen —
+     * picking "what it is made of" and "which grey" is one decision, made in one place.
+     */
+    private data class MaterialEntry(
+        val label: String,
+        val surface: Text3DSurface,
+        /** null = tint with whatever colour is currently applied. */
+        val color: Int?
+    )
 
-        private var selectedId: String = "plain"
-        private var baseColor: Int = Color.GRAY
+    /**
+     * Rendered with the colour item's construction — an outer round card that carries the
+     * selection ring and an inner card that insets when selected, so the chip shrinks
+     * inside the ring exactly the way a colour swatch does. The preview itself comes from
+     * the same shading code the canvas paints with, so a swatch cannot lie about the
+     * material.
+     */
+    private inner class MaterialSwatchAdapter(
+        private val onSelect: (MaterialEntry) -> Unit
+    ) : RecyclerView.Adapter<MaterialSwatchAdapter.SwatchViewHolder>() {
 
-        /**
-         * The first bind runs before the list has a height, so the cells would come out at
-         * their layout default and only look right on a second visit. Hold the list and
-         * re-bind once a real height lands, the way the style grid does.
-         */
-        private var attachedRv: RecyclerView? = null
-        private var lastMeasuredHeight: Int = 0
-
-        private val sizeOnLayout =
-            View.OnLayoutChangeListener { v, _, top, _, bottom, _, oldTop, _, oldBottom ->
-                val height = bottom - top
-                if (height > 0 && height != lastMeasuredHeight &&
-                    (bottom - top) != (oldBottom - oldTop)
-                ) {
-                    lastMeasuredHeight = height
-                    v.post { if (itemCount > 0) notifyDataSetChanged() }
-                }
+        private val items: List<MaterialEntry> = buildList {
+            Text3DData.SURFACES.forEach { add(MaterialEntry(it.label, it, null)) }
+            com.webscare.urducanvas.common.canvas.model.Text3DPalette.ALL.forEach { sw ->
+                add(
+                    MaterialEntry(
+                        sw.name,
+                        com.webscare.urducanvas.common.canvas.model.Text3DPalette.surfaceFor(sw),
+                        runCatching { sw.hex.toColorInt() }.getOrNull()
+                    )
+                )
             }
-
-        override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
-            super.onAttachedToRecyclerView(recyclerView)
-            attachedRv = recyclerView
-            lastMeasuredHeight = recyclerView.height
-            recyclerView.addOnLayoutChangeListener(sizeOnLayout)
         }
 
-        override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
-            super.onDetachedFromRecyclerView(recyclerView)
-            recyclerView.removeOnLayoutChangeListener(sizeOnLayout)
-            if (attachedRv == recyclerView) attachedRv = null
-        }
+        private var selectedLabel: String? = null
+        private var baseColor: Int = Color.BLACK
 
-        fun setSelectedId(id: String) {
-            if (selectedId != id) {
-                selectedId = id
+        fun setSelected(label: String?) {
+            if (selectedLabel != label) {
+                selectedLabel = label
                 notifyDataSetChanged()
             }
         }
 
-        /** Previews are tinted with the live front colour so they show the real result. */
+        /**
+         * Moves the ring onto whichever entry matches the applied finish.
+         *
+         * A named tone and a plain finish share a surface — Espresso *is* matte — so if
+         * what is already selected uses this surface, leave it alone. Without this check
+         * the next model update after picking a tone dragged the ring off the tone and
+         * onto the bare finish, which read as the selection vanishing.
+         */
+        fun setSelectedSurface(surfaceId: String) {
+            val current = items.firstOrNull { it.label == selectedLabel }
+            if (current != null && current.surface.id == surfaceId) return
+            val match = items.firstOrNull { it.color == null && it.surface.id == surfaceId }
+            setSelected(match?.label ?: selectedLabel)
+        }
+
         fun setBaseColor(color: Int) {
             if (baseColor != color) {
                 baseColor = color
@@ -445,91 +470,55 @@ class Material3DFragment : Fragment() {
             }
         }
 
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SurfaceViewHolder {
-            val itemBinding = ItemMaterialSurfaceBinding.inflate(
-                LayoutInflater.from(parent.context), parent, false
-            )
-            return SurfaceViewHolder(itemBinding)
-        }
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = SwatchViewHolder(
+            ItemMaterialSwatchBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+        )
 
-        override fun onBindViewHolder(holder: SurfaceViewHolder, position: Int) {
-            holder.bind(list[position])
-        }
+        override fun getItemCount() = items.size
 
-        override fun getItemCount(): Int = list.size
+        override fun onBindViewHolder(holder: SwatchViewHolder, position: Int) =
+            holder.bind(items[position])
 
-        inner class SurfaceViewHolder(private val itemBinding: ItemMaterialSurfaceBinding) :
+        inner class SwatchViewHolder(private val itemBinding: ItemMaterialSwatchBinding) :
             RecyclerView.ViewHolder(itemBinding.root) {
 
-            fun bind(item: Text3DSurface) {
-                val isSelected = item.id == selectedId
-                itemBinding.tvSurfaceLabel.text = item.label
-
-                if (isSelected) {
-                    itemBinding.surfaceBox.background = ContextCompat.getDrawable(
-                        itemBinding.root.context, R.drawable.bg_3d_preset_selected
-                    )
-                    itemBinding.tvSurfaceLabel.setTextColor("#005D28".toColorInt())
-                    itemBinding.ivEdit.visibility = View.VISIBLE
-                } else {
-                    itemBinding.surfaceBox.background = ContextCompat.getDrawable(
-                        itemBinding.root.context, R.drawable.bg_3d_preset_unselected
-                    )
-                    itemBinding.tvSurfaceLabel.setTextColor("#5F6368".toColorInt())
-                    itemBinding.ivEdit.visibility = View.GONE
-                }
-
-                sizeToGrid()
-
-                // The chip is built by the same code the canvas paints with, so the swatch
-                // and the glyphs cannot drift apart when a surface is retuned. A surface
-                // with its own preview colour shows that instead of the live front colour,
-                // which is what keeps the grid from being one wall of the same hue.
-                val chipColor = item.previewColor
-                    ?.let { runCatching { it.toColorInt() }.getOrNull() }
-                    ?: baseColor
+            fun bind(item: MaterialEntry) {
+                val isSelected = item.label == selectedLabel
+                val ctx = itemBinding.root.context
                 val density = resources.displayMetrics.density
-                val boxPx = itemBinding.surfaceBox.layoutParams?.width?.takeIf { it > 0 }
-                    ?: (46 * density).toInt()
-                val px = (boxPx - 12 * density).toInt().coerceAtLeast((20 * density).toInt())
-                itemBinding.surfaceBall.background = BitmapDrawable(
-                    resources,
-                    Text3DSurfaceShading.previewBitmap(item, chipColor, px)
+
+                itemBinding.swatchLabel.text = item.label
+                itemBinding.swatchLabel.setTextColor(
+                    (if (isSelected) "#005D28" else "#5F6368").toColorInt()
                 )
 
-                itemBinding.ivEdit.setOnClickListener { onEditClick() }
-                itemBinding.root.addPressEffect { onSelect(item.id) }
-            }
-
-            /**
-             * Three rows have to fit whatever height the panel is at, so the cell is
-             * measured off the list rather than pinned in the layout. The label keeps its
-             * own line; the rest of the cell is the swatch.
-             */
-            private fun sizeToGrid() {
-                val rv = (itemBinding.root.parent as? RecyclerView) ?: attachedRv ?: return
-                val density = resources.displayMetrics.density
-                val avail = rv.height - rv.paddingTop - rv.paddingBottom
-                if (avail <= 0) return
-
-                val rowGap = (6 * density).toInt()
-                val labelBlock = (15 * density).toInt()
-                val cell = ((avail - 3 * rowGap) / 3).coerceAtLeast((28 * density).toInt())
-                val box = (cell - labelBlock).coerceAtLeast((24 * density).toInt())
-
-                itemBinding.surfaceBox.layoutParams?.let { lp ->
-                    if (lp.width != box || lp.height != box) {
-                        lp.width = box
-                        lp.height = box
-                        itemBinding.surfaceBox.layoutParams = lp
-                    }
+                // Selection ring, sized and inset exactly as ColorsAdapter does it.
+                val strokePx = (2.0f * density + 0.5f).toInt()
+                val marginPx = (3.5f * density + 0.5f).toInt()
+                val lp = itemBinding.cardInner.layoutParams as ViewGroup.MarginLayoutParams
+                if (isSelected) {
+                    itemBinding.cardOuter.strokeWidth = strokePx
+                    itemBinding.cardOuter.strokeColor =
+                        ContextCompat.getColor(ctx, R.color.appColor)
+                    lp.setMargins(marginPx, marginPx, marginPx, marginPx)
+                } else {
+                    itemBinding.cardOuter.strokeWidth = (1f * density + 0.5f).toInt()
+                    itemBinding.cardOuter.strokeColor = "#D0D5DD".toColorInt()
+                    lp.setMargins(0, 0, 0, 0)
                 }
-                itemBinding.root.layoutParams?.let { lp ->
-                    if (lp.width != box) {
-                        lp.width = box
-                        itemBinding.root.layoutParams = lp
-                    }
-                }
+                itemBinding.cardInner.layoutParams = lp
+
+                val chipPx = (44 * density).toInt()
+                itemBinding.swatchView.setImageDrawable(
+                    BitmapDrawable(
+                        resources,
+                        Text3DSurfaceShading.previewBitmap(
+                            item.surface, item.color ?: baseColor, chipPx
+                        )
+                    )
+                )
+
+                itemBinding.root.addPressEffect { onSelect(item) }
             }
         }
     }

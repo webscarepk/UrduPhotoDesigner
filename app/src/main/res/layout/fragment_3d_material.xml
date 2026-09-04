@@ -10,90 +10,65 @@
     android:paddingEnd="10dp"
     android:paddingBottom="6dp">
 
-    <!-- SCREEN 1: surfaces only, three rows deep. No title or toggle here - the rail row
-         owns the on-off state, the same way the image adjustment tabs do. -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvSurfaces"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:clipToPadding="false"
-        android:orientation="horizontal"
-        app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
-        app:spanCount="3"
-        tools:listitem="@layout/item_material_surface" />
-
     <!-- SCREEN 2: Material Adjustments - the same colour + gradient setup as FillStrokeFragment -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/layoutAdjustments"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@color/white"
-        android:visibility="gone">
+        >
 
-        <TextView
-            android:id="@+id/tvAdjustmentsTitle"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="8dp"
-            android:ellipsize="end"
-            android:fontFamily="@font/medium"
-            android:maxLines="1"
-            android:text="Material Adjustments"
-            android:textColor="@color/black"
-            android:textSize="13sp"
-            app:layout_constraintBottom_toBottomOf="@id/btnDone"
-            app:layout_constraintEnd_toStartOf="@id/btnSettings"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="@id/btnDone" />
-
+        <!-- Smaller than the done glyph: settings is a way *deeper in*, done is the way
+             out, and the panel reads better when the exit is the larger of the two. -->
         <ImageView
             android:id="@+id/btnSettings"
-            android:layout_width="28dp"
-            android:layout_height="28dp"
-            android:layout_marginEnd="4dp"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:layout_marginEnd="6dp"
             android:contentDescription="@null"
-            android:padding="4dp"
+            android:padding="2dp"
             android:src="@drawable/ic_setting"
             app:layout_constraintBottom_toBottomOf="@id/btnDone"
             app:layout_constraintEnd_toStartOf="@id/btnDone"
             app:layout_constraintTop_toTopOf="@id/btnDone"
             app:tint="@color/black" />
 
-        <!-- Bare glyph, no filled pill: the tick is a quiet way back, not the loudest
-             thing on the screen. -->
+        <!-- Bare glyph, no ring: the tick is a quiet way back, not the loudest thing on
+             the screen, and the circular stroke made it read as a button among icons. -->
         <ImageView
             android:id="@+id/btnDone"
-            android:layout_width="28dp"
-            android:layout_height="28dp"
+            android:layout_width="26dp"
+            android:layout_height="26dp"
             android:contentDescription="@null"
-            android:padding="3dp"
-            android:src="@drawable/ic_done_stroke"
+            android:padding="1dp"
+            android:src="@drawable/ic_done"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:tint="@color/black" />
 
-        <!-- Which face the swatch list below is editing. Same segmented pill as
-             Solid / Gradient underneath, so the two rows read as one control set. -->
+        <!-- Which face the swatch list below is editing. Sits on the header row rather
+             than a line of its own: the panel had a title, a pill row and a checkbox all
+             competing for height that the swatches needed. Both replaces the old
+             "same as front" checkbox — it is the same state, said once. -->
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/faceToolbar"
             android:layout_width="0dp"
-            android:layout_height="28dp"
-            android:layout_marginTop="8dp"
-            android:layout_marginEnd="8dp"
+            android:layout_height="26dp"
+            android:layout_marginEnd="10dp"
             android:background="@drawable/button_bg_small"
             android:backgroundTint="@color/contrast"
             android:padding="2dp"
-            app:layout_constraintEnd_toStartOf="@id/cbSameAsFront"
+            app:layout_constraintBottom_toBottomOf="@id/btnDone"
+            app:layout_constraintEnd_toStartOf="@id/btnSettings"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/btnDone"
-            app:layout_constraintWidth_percent="0.42">
+            app:layout_constraintTop_toTopOf="@id/btnDone">
 
             <TextView
                 android:id="@+id/tabFront"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:background="@drawable/button_bg_small"
-                android:backgroundTint="@color/white"
+                android:backgroundTint="@color/contrast"
                 android:fontFamily="@font/medium"
                 android:gravity="center"
                 android:text="Front"
@@ -116,46 +91,27 @@
                 android:textColor="@color/black"
                 android:textSize="11sp"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/tabBoth"
                 app:layout_constraintStart_toEndOf="@id/tabFront"
                 app:layout_constraintTop_toTopOf="parent" />
 
-        </androidx.constraintlayout.widget.ConstraintLayout>
-
-        <!-- A small round tick instead of a boxy checkbox, and grey rather than app green
-             so it does not compete with the swatches. -->
-        <LinearLayout
-            android:id="@+id/cbSameAsFront"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            app:layout_constraintBottom_toBottomOf="@id/faceToolbar"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="@id/faceToolbar">
-
-            <ImageView
-                android:id="@+id/ivSameAsFrontTick"
-                android:layout_width="16dp"
-                android:layout_height="16dp"
-                android:background="@drawable/bg_round_check_on"
-                android:contentDescription="@null"
-                android:padding="2dp"
-                android:src="@drawable/ic_done"
-                app:tint="@color/white" />
-
             <TextView
-                android:id="@+id/tvSameAsFront"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="5dp"
-                android:fontFamily="@font/regular"
-                android:text="Same as front"
+                android:id="@+id/tabBoth"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:background="@drawable/button_bg_small"
+                android:backgroundTint="@color/white"
+                android:fontFamily="@font/medium"
+                android:gravity="center"
+                android:text="@string/both"
                 android:textColor="@color/black"
-                android:textSize="11sp" />
+                android:textSize="11sp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@id/tabSide"
+                app:layout_constraintTop_toTopOf="parent" />
 
-        </LinearLayout>
-
+        </androidx.constraintlayout.widget.ConstraintLayout>
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/toolbar"
             android:layout_width="0dp"
@@ -196,8 +152,25 @@
                 android:textColor="@color/black"
                 android:textSize="11sp"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/materials"
                 app:layout_constraintStart_toEndOf="@id/solid"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <!-- Named material swatches: a colour and the finish it belongs in. -->
+            <TextView
+                android:id="@+id/materials"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:background="@drawable/button_bg_small"
+                android:backgroundTint="@color/contrast"
+                android:fontFamily="@font/medium"
+                android:gravity="center"
+                android:text="@string/materials"
+                android:textColor="@color/black"
+                android:textSize="11sp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@id/gradient"
                 app:layout_constraintTop_toTopOf="parent" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
@@ -221,7 +194,7 @@
                 android:clipToPadding="false"
                 android:orientation="horizontal"
                 app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
-                app:spanCount="3"
+                app:spanCount="4"
                 tools:itemCount="20"
                 tools:listitem="@layout/layout_color_item" />
 
@@ -233,9 +206,21 @@
                 android:orientation="horizontal"
                 android:visibility="gone"
                 app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
-                app:spanCount="3"
+                app:spanCount="4"
                 tools:itemCount="20"
                 tools:listitem="@layout/layout_color_item" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/materials_list"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:orientation="horizontal"
+                android:visibility="gone"
+                app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
+                app:spanCount="2"
+                tools:itemCount="20"
+                tools:listitem="@layout/item_material_surface" />
 
         </FrameLayout>
 

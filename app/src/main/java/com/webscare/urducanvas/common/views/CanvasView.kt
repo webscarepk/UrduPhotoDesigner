@@ -2647,7 +2647,11 @@ class CanvasView @JvmOverloads constructor(
             }
 
             // ── Full-canvas image layer — drawn with cover-fill like background ──
-            if (element.type == ElementType.IMAGE && element.logicalContentWidth == canvasWidth.toFloat() && element.logicalContentHeight == canvasHeight.toFloat() && element.imageFitMode == "cover") {
+            // scale == 1f is part of the signature: setCanvasBackgroundImage() always creates
+            // these at scale 1, while addSticker() shrinks anything canvas-sized to fit 60% of
+            // the canvas. Without it, an ordinary sticker whose bitmap happens to match the
+            // canvas dimensions would be misrouted through the background path.
+            if (element.type == ElementType.IMAGE && element.scale == 1f && element.logicalContentWidth == canvasWidth.toFloat() && element.logicalContentHeight == canvasHeight.toFloat() && element.imageFitMode == "cover") {
                 drawBackgroundElement(canvas, element)
                 return@forEach
             } else {
@@ -3142,237 +3146,17 @@ class CanvasView @JvmOverloads constructor(
                                     element.id, finalBitmap, onScreenW, onScreenH
                                 )
 
-                                // ── Cached shadow (Problem 3 fix for IMAGE type) ─────────────────
-                                if (element.hasShadow && element.shadowOpacity > 0) {
-                                    val shadowFp = Objects.hash(
-                                        element.id + "_img_shadow",
-                                        element.shadowRadius,
-                                        element.shadowColor,
-                                        element.shadowOpacity,
-                                        finalBitmap.width,
-                                        finalBitmap.height
-                                    )
-                                    val cached = shadowBitmapCache[element.id + "_img_shadow"]
-                                    val entry: ShadowCacheEntry =
-                                        if (cached != null && cached.fingerprint == shadowFp && !cached.bitmap.isRecycled) {
-                                            cached
-                                        } else {
-                                            cached?.bitmap?.recycle()
-                                            val blurPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                                                maskFilter = BlurMaskFilter(
-                                                    element.shadowRadius.coerceAtLeast(0.1f),
-                                                    BlurMaskFilter.Blur.NORMAL
-                                                )
-                                            }
-                                            val offset = IntArray(2)
-                                            val blurred =
-                                                finalBitmap.extractAlpha(blurPaint, offset)
-                                            ShadowCacheEntry(
-                                                bitmap = blurred,
-                                                fingerprint = shadowFp,
-                                                scaleX = 1f,
-                                                scaleY = 1f,
-                                                offsetX = offset[0].toFloat(),
-                                                offsetY = offset[1].toFloat()
-                                            ).also {
-                                                shadowBitmapCache[element.id + "_img_shadow"] = it
-                                            }
-                                        }
-
-                                    val shadowColor = Color.argb(
-                                        element.shadowOpacity.coerceIn(0, 255),
-                                        Color.red(element.shadowColor),
-                                        Color.green(element.shadowColor),
-                                        Color.blue(element.shadowColor)
-                                    )
-                                    reusableDrawPaint.reset()
-                                    reusableDrawPaint.isAntiAlias = true
-                                    reusableDrawPaint.isFilterBitmap = true
-                                    reusableDrawPaint.colorFilter =
-                                        android.graphics.PorterDuffColorFilter(
-                                            shadowColor, PorterDuff.Mode.SRC_IN
-                                        )
-
-                                    val sScale = (element.shadowScale / 100f).coerceIn(0.1f, 3f)
-                                    val dstLeft = left + entry.offsetX + element.shadowDx * sScale
-                                    val dstTop = top + entry.offsetY + element.shadowDy * sScale
-                                    reusableRectF.set(
-                                        dstLeft,
-                                        dstTop,
-                                        dstLeft + entry.bitmap.width * sScale,
-                                        dstTop + entry.bitmap.height * sScale
-                                    )
-
-                                    canvas.save()
-                                    if (!entry.bitmap.isRecycled) {
-                                        canvas.drawBitmap(
-                                            entry.bitmap, null, reusableRectF, reusableDrawPaint
-                                        )
-                                    }
-                                    canvas.restore()
-                                }
-
-                                // ── Stroke & Feather Setup ───────────────────────────────────────────
-                                val hasFeather = element.hasFeather && element.featherRadius > 0f
-                                val hasStroke = element.hasStroke && element.strokeWidth > 0f
-                                val strokeWidth = if (hasStroke) element.strokeWidth else 0f
-
-                                val layerLeft = left - strokeWidth
-                                val layerTop = top - strokeWidth
-                                val layerRight = left + w + strokeWidth
-                                val layerBottom = top + h + strokeWidth
-
-                                val needsImgLayer = (element.hasOverlay && element.overlayOpacity > 0) || hasFeather
-                                if (needsImgLayer) {
-                                    canvas.saveLayer(layerLeft, layerTop, layerRight, layerBottom, null)
-                                }
-
-                                // ── Cached stroke (Problem 3 fix for IMAGE type) ─────────────────
-                                if (hasStroke) {
-                                    val strokeFp = Objects.hash(
-                                        element.id + "_img",
-                                        element.strokeWidth,
-                                        finalBitmap.width,
-                                        finalBitmap.height
-                                    )
-                                    val cachedStroke = strokeBitmapCache[element.id + "_img"]
-                                    val strokedAlphaMask: Bitmap =
-                                        if (cachedStroke != null && cachedStroke.fingerprint == strokeFp && !cachedStroke.bitmap.isRecycled) {
-                                            cachedStroke.bitmap
-                                        } else {
-                                            cachedStroke?.bitmap?.recycle()
-                                            val strokeAlpha = finalBitmap.extractAlpha()
-
-                                            // Pre-render the stroke onto a single ALPHA_8 bitmap
-                                            val strokeWidthInt =
-                                                element.strokeWidth.roundToInt().coerceAtLeast(1)
-                                            val maskW = strokeAlpha.width + 2 * strokeWidthInt
-                                            val maskH = strokeAlpha.height + 2 * strokeWidthInt
-                                            val preRendered = Bitmap.createBitmap(
-                                                maskW, maskH, Bitmap.Config.ALPHA_8
-                                            )
-                                            val maskCanvas = Canvas(preRendered)
-                                            val maskPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-                                            for (angle in 0 until 360 step 10) {
-                                                val rad = Math.toRadians(angle.toDouble())
-                                                val dx = (strokeWidthInt * cos(rad)).toFloat()
-                                                val dy = (strokeWidthInt * sin(rad)).toFloat()
-                                                maskCanvas.drawBitmap(
-                                                    strokeAlpha,
-                                                    strokeWidthInt + dx,
-                                                    strokeWidthInt + dy,
-                                                    maskPaint
-                                                )
-                                            }
-                                            strokeAlpha.recycle()
-
-                                            StrokeCacheEntry(preRendered, strokeFp).also {
-                                                    strokeBitmapCache[element.id + "_img"] = it
-                                                }.bitmap
-                                        }
-
-                                    reusableStrokePaint.reset()
-                                    reusableStrokePaint.style = Paint.Style.FILL
-                                    reusableStrokePaint.isFilterBitmap = true
-                                    if (element.strokeGradient != null) {
-                                        reusableStrokePaint.shader =
-                                            createGradientShader(element.strokeGradient!!, w, h)
-                                    } else {
-                                        reusableStrokePaint.shader = null
-                                        reusableStrokePaint.color = element.strokeColor
-                                    }
-
-                                    if (!hasFeather) canvas.save()
-                                    reusableRectF.set(layerLeft, layerTop, layerRight, layerBottom)
-                                    if (!strokedAlphaMask.isRecycled) {
-                                        canvas.drawBitmap(
-                                            strokedAlphaMask,
-                                            null,
-                                            reusableRectF,
-                                            reusableStrokePaint
-                                        )
-                                    }
-                                    if (!hasFeather) canvas.restore()
-                                }
-
-                                if (!hasFeather) {
-                                    canvas.saveLayer(left, top, left + w, top + h, null)
-                                }
-
-                                reusableDrawPaint.reset()
-                                reusableDrawPaint.isAntiAlias = true
-                                reusableDrawPaint.isFilterBitmap = true
-                                reusableDrawPaint.colorFilter = colorFilterFor(element.imageFilter, element.filterIntensity)
-
-                                // Draw display-resolution proxy — same visual result, fraction of GPU work
-                                reusableRectF.set(left, top, left + w, top + h)
-                                if (!displayBmp.isRecycled) {
-                                    when (element.imageFilter) {
-                                        ImageFilter.SoftBlur -> {
-                                            reusableDrawPaint.maskFilter =
-                                                BlurMaskFilter(12f, BlurMaskFilter.Blur.NORMAL)
-                                            canvas.drawBitmap(
-                                                displayBmp, null, reusableRectF, reusableDrawPaint
-                                            )
-                                        }
-
-                                        ImageFilter.Glow -> {
-                                            canvas.drawBitmap(
-                                                displayBmp, null, reusableRectF, reusableDrawPaint
-                                            )
-                                            val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                                                color = Color.argb(180, 255, 255, 200)
-                                                maskFilter =
-                                                    BlurMaskFilter(25f, BlurMaskFilter.Blur.OUTER)
-                                                colorFilter = colorFilterFor(element.imageFilter, element.filterIntensity)
-                                            }
-                                            canvas.drawBitmap(
-                                                displayBmp, null, reusableRectF, glowPaint
-                                            )
-                                        }
-
-                                        else -> {
-                                            canvas.drawBitmap(
-                                                displayBmp, null, reusableRectF, reusableDrawPaint
-                                            )
-                                        }
-                                    }
-                                }
-
-                                if (element.hasOverlay && element.overlayOpacity > 0) {
-                                    val overlayPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                                        alpha = element.overlayOpacity.coerceIn(0, 255)
-                                        xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_ATOP)
-                                    }
-                                    if (element.overlayGradient != null) {
-                                        overlayPaint.shader =
-                                            createGradientShader(element.overlayGradient!!, w, h)
-                                    } else {
-                                        overlayPaint.color = element.overlayColor
-                                    }
-                                    canvas.drawRect(left, top, left + w, top + h, overlayPaint)
-                                }
-
-                                // ── Feather: soft edge fade, instant GPU, no pixel loops ────────────
-                                if (hasFeather) {
-                                    drawFeatherMask(
-                                        canvas,
-                                        element.id,
-                                        if (hasStroke) layerLeft else left,
-                                        if (hasStroke) layerTop else top,
-                                        if (hasStroke) layerRight else left + w,
-                                        if (hasStroke) layerBottom else top + h,
-                                        element.featherRadius,
-                                        element.featherWidth,
-                                        element.featherDirection ?: FeatherDirection.ALL,
-                                        element.featherBiasX,
-                                        element.featherBiasY
-                                    )
-                                }
-                                if (isElementProcessing(element.id)) {
-                                    drawShimmerOverlay(canvas, reusableRectF)
-                                }
-                                canvas.restore()  // restore saveLayer opened above for feather compositing
+                                drawRasterElementWithEffects(
+                                    canvas = canvas,
+                                    element = element,
+                                    sourceBitmap = finalBitmap,
+                                    displayBmp = displayBmp,
+                                    left = left,
+                                    top = top,
+                                    w = w,
+                                    h = h,
+                                    cacheSuffix = "_img"
+                                )
                             }
                             if (element.svgDrawable == null && element.bitmap == null) {
                                 Log.w("CanvasView", "drawCanvasElements: element ${element.id} (${element.customName ?: element.type}) has null svgDrawable and null bitmap after hydration")
@@ -4523,6 +4307,241 @@ class CanvasView @JvmOverloads constructor(
         }
     }
 
+    /**
+     * Draws a raster element with its full effect stack: shadow, stroke, the bitmap
+     * itself under its colour filter, overlay and feather.
+     *
+     * Shared by the ordinary image branch and [drawBackgroundElement]. It used to live
+     * inline in the image branch only, which is why an unlocked background could be given
+     * a stroke or a shadow in the properties panel and nothing happened — the background
+     * is painted by a different routine that never learned them.
+     *
+     * Everything here is in the element's own local space: the caller has already applied
+     * translation, rotation and scale, and passes the rect the bitmap occupies there.
+     *
+     * @param sourceBitmap full-resolution bitmap; alpha is extracted from it for the
+     *   stroke and shadow masks, so it must not be the downscaled proxy.
+     * @param displayBmp what actually gets drawn — a display-resolution proxy.
+     * @param cacheSuffix keeps the two call sites' stroke/shadow caches apart.
+     * @param baseAlpha element opacity. The image branch composites through its own
+     *   saveLayer and passes 255; the background has no such layer and passes its own.
+     */
+    private fun drawRasterElementWithEffects(
+        canvas: Canvas,
+        element: CanvasElement,
+        sourceBitmap: Bitmap,
+        displayBmp: Bitmap,
+        left: Float,
+        top: Float,
+        w: Float,
+        h: Float,
+        cacheSuffix: String,
+        baseAlpha: Int = 255
+    ) {
+        val strokeKey = element.id + cacheSuffix
+        val shadowKey = element.id + cacheSuffix + "_shadow"
+
+        // ── Cached shadow ────────────────────────────────────────────────────
+        if (element.hasShadow && element.shadowOpacity > 0) {
+            val shadowFp = Objects.hash(
+                shadowKey,
+                element.shadowRadius,
+                element.shadowColor,
+                element.shadowOpacity,
+                sourceBitmap.width,
+                sourceBitmap.height
+            )
+            val cached = shadowBitmapCache[shadowKey]
+            val entry: ShadowCacheEntry =
+                if (cached != null && cached.fingerprint == shadowFp && !cached.bitmap.isRecycled) {
+                    cached
+                } else {
+                    cached?.bitmap?.recycle()
+                    val blurPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                        maskFilter = BlurMaskFilter(
+                            element.shadowRadius.coerceAtLeast(0.1f),
+                            BlurMaskFilter.Blur.NORMAL
+                        )
+                    }
+                    val offset = IntArray(2)
+                    val blurred = sourceBitmap.extractAlpha(blurPaint, offset)
+                    ShadowCacheEntry(
+                        bitmap = blurred,
+                        fingerprint = shadowFp,
+                        scaleX = 1f,
+                        scaleY = 1f,
+                        offsetX = offset[0].toFloat(),
+                        offsetY = offset[1].toFloat()
+                    ).also { shadowBitmapCache[shadowKey] = it }
+                }
+
+            val shadowColor = Color.argb(
+                element.shadowOpacity.coerceIn(0, 255),
+                Color.red(element.shadowColor),
+                Color.green(element.shadowColor),
+                Color.blue(element.shadowColor)
+            )
+            reusableDrawPaint.reset()
+            reusableDrawPaint.isAntiAlias = true
+            reusableDrawPaint.isFilterBitmap = true
+            reusableDrawPaint.colorFilter =
+                android.graphics.PorterDuffColorFilter(shadowColor, PorterDuff.Mode.SRC_IN)
+
+            val sScale = (element.shadowScale / 100f).coerceIn(0.1f, 3f)
+            val dstLeft = left + entry.offsetX + element.shadowDx * sScale
+            val dstTop = top + entry.offsetY + element.shadowDy * sScale
+            reusableRectF.set(
+                dstLeft,
+                dstTop,
+                dstLeft + entry.bitmap.width * sScale,
+                dstTop + entry.bitmap.height * sScale
+            )
+
+            canvas.save()
+            if (!entry.bitmap.isRecycled) {
+                canvas.drawBitmap(entry.bitmap, null, reusableRectF, reusableDrawPaint)
+            }
+            canvas.restore()
+        }
+
+        // ── Stroke & Feather setup ───────────────────────────────────────────
+        val hasFeather = element.hasFeather && element.featherRadius > 0f
+        val hasStroke = element.hasStroke && element.strokeWidth > 0f
+        val strokeWidth = if (hasStroke) element.strokeWidth else 0f
+
+        val layerLeft = left - strokeWidth
+        val layerTop = top - strokeWidth
+        val layerRight = left + w + strokeWidth
+        val layerBottom = top + h + strokeWidth
+
+        val needsImgLayer = (element.hasOverlay && element.overlayOpacity > 0) || hasFeather
+        if (needsImgLayer) {
+            canvas.saveLayer(layerLeft, layerTop, layerRight, layerBottom, null)
+        }
+
+        // ── Cached stroke ────────────────────────────────────────────────────
+        if (hasStroke) {
+            val strokeFp = Objects.hash(
+                strokeKey, element.strokeWidth, sourceBitmap.width, sourceBitmap.height
+            )
+            val cachedStroke = strokeBitmapCache[strokeKey]
+            val strokedAlphaMask: Bitmap =
+                if (cachedStroke != null && cachedStroke.fingerprint == strokeFp && !cachedStroke.bitmap.isRecycled) {
+                    cachedStroke.bitmap
+                } else {
+                    cachedStroke?.bitmap?.recycle()
+                    val strokeAlpha = sourceBitmap.extractAlpha()
+
+                    // Pre-render the stroke onto a single ALPHA_8 bitmap
+                    val strokeWidthInt = element.strokeWidth.roundToInt().coerceAtLeast(1)
+                    val maskW = strokeAlpha.width + 2 * strokeWidthInt
+                    val maskH = strokeAlpha.height + 2 * strokeWidthInt
+                    val preRendered = Bitmap.createBitmap(maskW, maskH, Bitmap.Config.ALPHA_8)
+                    val maskCanvas = Canvas(preRendered)
+                    val maskPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+                    for (angle in 0 until 360 step 10) {
+                        val rad = Math.toRadians(angle.toDouble())
+                        val dx = (strokeWidthInt * cos(rad)).toFloat()
+                        val dy = (strokeWidthInt * sin(rad)).toFloat()
+                        maskCanvas.drawBitmap(
+                            strokeAlpha, strokeWidthInt + dx, strokeWidthInt + dy, maskPaint
+                        )
+                    }
+                    strokeAlpha.recycle()
+
+                    StrokeCacheEntry(preRendered, strokeFp)
+                        .also { strokeBitmapCache[strokeKey] = it }.bitmap
+                }
+
+            reusableStrokePaint.reset()
+            reusableStrokePaint.style = Paint.Style.FILL
+            reusableStrokePaint.isFilterBitmap = true
+            if (element.strokeGradient != null) {
+                reusableStrokePaint.shader = createGradientShader(element.strokeGradient!!, w, h)
+            } else {
+                reusableStrokePaint.shader = null
+                reusableStrokePaint.color = element.strokeColor
+            }
+
+            if (!hasFeather) canvas.save()
+            reusableRectF.set(layerLeft, layerTop, layerRight, layerBottom)
+            if (!strokedAlphaMask.isRecycled) {
+                canvas.drawBitmap(strokedAlphaMask, null, reusableRectF, reusableStrokePaint)
+            }
+            if (!hasFeather) canvas.restore()
+        }
+
+        if (!hasFeather) {
+            canvas.saveLayer(left, top, left + w, top + h, null)
+        }
+
+        reusableDrawPaint.reset()
+        reusableDrawPaint.isAntiAlias = true
+        reusableDrawPaint.isFilterBitmap = true
+        reusableDrawPaint.alpha = baseAlpha.coerceIn(0, 255)
+        reusableDrawPaint.colorFilter =
+            colorFilterFor(element.imageFilter, element.filterIntensity)
+
+        // Draw display-resolution proxy — same visual result, fraction of GPU work
+        reusableRectF.set(left, top, left + w, top + h)
+        if (!displayBmp.isRecycled) {
+            when (element.imageFilter) {
+                ImageFilter.SoftBlur -> {
+                    reusableDrawPaint.maskFilter = BlurMaskFilter(12f, BlurMaskFilter.Blur.NORMAL)
+                    canvas.drawBitmap(displayBmp, null, reusableRectF, reusableDrawPaint)
+                }
+
+                ImageFilter.Glow -> {
+                    canvas.drawBitmap(displayBmp, null, reusableRectF, reusableDrawPaint)
+                    val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                        color = Color.argb(180, 255, 255, 200)
+                        maskFilter = BlurMaskFilter(25f, BlurMaskFilter.Blur.OUTER)
+                        colorFilter =
+                            colorFilterFor(element.imageFilter, element.filterIntensity)
+                        alpha = baseAlpha.coerceIn(0, 255)
+                    }
+                    canvas.drawBitmap(displayBmp, null, reusableRectF, glowPaint)
+                }
+
+                else -> canvas.drawBitmap(displayBmp, null, reusableRectF, reusableDrawPaint)
+            }
+        }
+
+        if (element.hasOverlay && element.overlayOpacity > 0) {
+            val overlayPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                alpha = element.overlayOpacity.coerceIn(0, 255)
+                xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_ATOP)
+            }
+            if (element.overlayGradient != null) {
+                overlayPaint.shader = createGradientShader(element.overlayGradient!!, w, h)
+            } else {
+                overlayPaint.color = element.overlayColor
+            }
+            canvas.drawRect(left, top, left + w, top + h, overlayPaint)
+        }
+
+        // ── Feather: soft edge fade, instant GPU, no pixel loops ─────────────
+        if (hasFeather) {
+            drawFeatherMask(
+                canvas,
+                element.id + cacheSuffix,
+                if (hasStroke) layerLeft else left,
+                if (hasStroke) layerTop else top,
+                if (hasStroke) layerRight else left + w,
+                if (hasStroke) layerBottom else top + h,
+                element.featherRadius,
+                element.featherWidth,
+                element.featherDirection ?: FeatherDirection.ALL,
+                element.featherBiasX,
+                element.featherBiasY
+            )
+        }
+        if (isElementProcessing(element.id)) {
+            drawShimmerOverlay(canvas, reusableRectF)
+        }
+        canvas.restore()  // restore saveLayer opened above for feather compositing
+    }
+
     private fun drawBackgroundElement(
         canvas: Canvas, e: CanvasElement
     ) {
@@ -4593,58 +4612,22 @@ class CanvasView @JvmOverloads constructor(
 
                 if (bmp.isRecycled) return@withTranslation
 
-                reusableBgPaint.colorFilter = colorFilterFor(e.imageFilter, e.filterIntensity)
-                reusableBgPaint.maskFilter = null
-
-                // We draw displayBmp but we must draw it at the source bitmap's
-                // coordinate space (because the canvas is already scaled by totalScale).
-                // So map displayBmp back to the full-size drawing rect.
-                val dstRect =
-                    reusableRectF.also { it.set(0f, 0f, bmp.width.toFloat(), bmp.height.toFloat()) }
-
-                when (e.imageFilter) {
-                    ImageFilter.SoftBlur -> {
-                        reusableBgPaint.maskFilter = BlurMaskFilter(12f, BlurMaskFilter.Blur.NORMAL)
-                        if (!displayBmp.isRecycled) drawBitmap(
-                            displayBmp, null, dstRect, reusableBgPaint
-                        )
-                    }
-
-                    ImageFilter.Glow -> {
-                        if (!displayBmp.isRecycled) drawBitmap(
-                            displayBmp, null, dstRect, reusableBgPaint
-                        )
-                        val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                            color = Color.argb(180, 255, 255, 200)
-                            maskFilter = BlurMaskFilter(25f, BlurMaskFilter.Blur.OUTER)
-                        }
-                        if (!displayBmp.isRecycled) drawBitmap(displayBmp, null, dstRect, glowPaint)
-                    }
-
-                    else -> {
-                        if (!displayBmp.isRecycled) drawBitmap(
-                            displayBmp, null, dstRect, reusableBgPaint
-                        )
-                    }
-                }
-                if (e.hasOverlay && e.overlayOpacity > 0) {
-                    val overlayPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                        alpha = e.overlayOpacity.coerceIn(0, 255)
-                        xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_ATOP)
-                    }
-
-                    if (e.overlayGradient != null) {
-                        overlayPaint.shader = createGradientShader(
-                            e.overlayGradient!!, bmp.width.toFloat(), bmp.height.toFloat()
-                        )
-                    } else {
-                        overlayPaint.color = e.overlayColor
-                    }
-                    drawRect(0f, 0f, bmp.width.toFloat(), bmp.height.toFloat(), overlayPaint)
-                }
-                if (isElementProcessing(e.id)) {
-                    drawShimmerOverlay(this, dstRect)
-                }
+                // The canvas is already scaled by totalScale, so the display proxy is
+                // mapped back onto the source bitmap's own rect. Same effect stack as any
+                // other raster element — an unlocked background is edited through the
+                // image properties panel, so every control there has to do something.
+                drawRasterElementWithEffects(
+                    canvas = this,
+                    element = e,
+                    sourceBitmap = adjustedBackground,
+                    displayBmp = displayBmp,
+                    left = 0f,
+                    top = 0f,
+                    w = bmp.width.toFloat(),
+                    h = bmp.height.toFloat(),
+                    cacheSuffix = "_bg",
+                    baseAlpha = e.paintAlpha
+                )
             }
             reusableBgPaint.xfermode = drawWithBlend(e)
             return
@@ -5610,6 +5593,26 @@ class CanvasView @JvmOverloads constructor(
                         val blurRadius = (t3d.lighting.softness / 9f).coerceIn(0.5f, 14f)
                         fillPaint.maskFilter = BlurMaskFilter(blurRadius, BlurMaskFilter.Blur.SOLID)
                     }
+                } else if (matEnabled) {
+                    // Lighting off still means the material is on. Chrome, gold and velvet
+                    // read as themselves through their tonal *range*, and clearing the
+                    // colour filter outright flattened them to one dark colour — so
+                    // switching the light off looked like it had switched the material off
+                    // too. Keep the material's own contrast, drop only what the light
+                    // contributes: no directional brightening, no softness blur.
+                    val contrast = 1f + (100f - t3d.material.roughness) / 110f + metalNorm * 0.4f
+                    val tVal = (1f - contrast) * 128f
+                    fillPaint.colorFilter = ColorMatrixColorFilter(
+                        ColorMatrix(
+                            floatArrayOf(
+                                contrast, 0f, 0f, 0f, tVal,
+                                0f, contrast, 0f, 0f, tVal,
+                                0f, 0f, contrast, 0f, tVal,
+                                0f, 0f, 0f, 1f, 0f
+                            )
+                        )
+                    )
+                    fillPaint.maskFilter = null
                 } else {
                     fillPaint.colorFilter = null
                     fillPaint.maskFilter = null

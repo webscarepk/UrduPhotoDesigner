@@ -198,7 +198,10 @@ class EraserSizeFragment : Fragment() {
         }
 
         viewModel.isEraserSmoothingEnabled.observe(viewLifecycleOwner) { isSmoothing ->
-            binding.smoothEdgesSwitch.setChecked(isSmoothing == true, animate = false)
+            // Quietly: setChecked() fires onCheckedChangeListener, which arms draw mode.
+            // This fragment is built the moment the brush panel opens, so the plain setter
+            // put the canvas into draw mode before the user had touched anything.
+            binding.smoothEdgesSwitch.setCheckedQuietly(isSmoothing == true)
         }
     }
 

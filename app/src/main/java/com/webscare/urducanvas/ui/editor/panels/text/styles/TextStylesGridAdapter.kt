@@ -88,7 +88,10 @@ class TextStylesGridAdapter(
         holder.titleTxt.visibility = View.GONE
         holder.previewImg.visibility = View.VISIBLE
 
-        val isSelected = preset.id == selectedPresetId
+        val isNone = preset.id == TextStylePreset.NONE_ID
+        // A null selection means no preset has been applied — which is exactly what the
+        // None cell represents, so it carries the selection ring until something else does.
+        val isSelected = preset.id == selectedPresetId || (isNone && selectedPresetId == null)
         val cardView = holder.itemView as? MaterialCardView
         if (cardView != null) {
             val strokePx = (1.5f * cardView.context.resources.displayMetrics.density + 0.5f).toInt()
@@ -96,13 +99,29 @@ class TextStylesGridAdapter(
             cardView.strokeColor = ContextCompat.getColor(cardView.context, R.color.appColor)
         }
 
-        val bmp = TextStyleThumbnailRenderer.getCachedOrGenerateThumbnail(
-            holder.itemView.context,
-            preset,
-            currentTypeface,
-            currentFontKey
-        )
-        holder.previewImg.setImageBitmap(bmp)
+        val density = holder.itemView.resources.displayMetrics.density
+        if (isNone) {
+            holder.previewImg.setImageResource(R.drawable.ic_none)
+            holder.previewImg.imageTintList = ContextCompat.getColorStateList(
+                holder.itemView.context,
+                if (isSelected) R.color.appColor else R.color.gray
+            )
+            // A glyph is not a thumbnail: at the preview's own 4dp padding the slashed
+            // circle grew to the full cell and shouted over every real style beside it.
+            val glyphPad = (13 * density).toInt()
+            holder.previewImg.setPadding(glyphPad, glyphPad, glyphPad, glyphPad)
+        } else {
+            holder.previewImg.imageTintList = null
+            val previewPad = (4 * density).toInt()
+            holder.previewImg.setPadding(previewPad, previewPad, previewPad, previewPad)
+            val bmp = TextStyleThumbnailRenderer.getCachedOrGenerateThumbnail(
+                holder.itemView.context,
+                preset,
+                currentTypeface,
+                currentFontKey
+            )
+            holder.previewImg.setImageBitmap(bmp)
+        }
 
         holder.updateSize(attachedRecyclerView)
 

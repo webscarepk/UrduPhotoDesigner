@@ -18,6 +18,15 @@ class TextAdjustmentsPagerAdapter(
 
     override fun getItemCount(): Int = tabs.size
 
+    // Stable, content-derived ids. Without them FragmentStateAdapter keys its saved
+    // fragment state by raw position, and 3D and Format — whose layouts declare the same
+    // @id/collapsibleRail and @id/viewPager — can have each other's view hierarchy state
+    // handed to them when a page is recycled during a multi-page jump.
+    override fun getItemId(position: Int): Long = tabs[position].hashCode().toLong()
+
+    override fun containsItem(itemId: Long): Boolean =
+        tabs.any { it.hashCode().toLong() == itemId }
+
     override fun createFragment(position: Int): Fragment {
         return when (tabs[position]) {
             "Styles"     -> TextStylesFragment.newInstance()

@@ -41,7 +41,7 @@ class Lighting3DFragment : Fragment() {
             viewModel.setPagingLocked(dragging)
         }
         binding.lightingPad.onAngleChanged = { angle ->
-            viewModel.updateText3D(pushToUndo = false) { it.lighting.angle = angle }
+            viewModel.updateText3D(pushToUndo = false, enableSection = CanvasViewModel.Text3DSection.LIGHTING) { it.lighting.angle = angle }
         }
     }
 
@@ -52,7 +52,7 @@ class Lighting3DFragment : Fragment() {
             minValue = 0
             maxValue = 100
             onValueChanged = { v ->
-                viewModel.updateText3D(pushToUndo = false) { it.lighting.intensity = v.toFloat() }
+                viewModel.updateText3D(pushToUndo = false, enableSection = CanvasViewModel.Text3DSection.LIGHTING) { it.lighting.intensity = v.toFloat() }
             }
             onDragStateChanged = { dragging -> viewModel.setPagingLocked(dragging) }
         }
@@ -63,7 +63,7 @@ class Lighting3DFragment : Fragment() {
             minValue = 0
             maxValue = 100
             onValueChanged = { v ->
-                viewModel.updateText3D(pushToUndo = false) { it.lighting.ambient = v.toFloat() }
+                viewModel.updateText3D(pushToUndo = false, enableSection = CanvasViewModel.Text3DSection.LIGHTING) { it.lighting.ambient = v.toFloat() }
             }
             onDragStateChanged = { dragging -> viewModel.setPagingLocked(dragging) }
         }
@@ -74,7 +74,7 @@ class Lighting3DFragment : Fragment() {
             minValue = 0
             maxValue = 100
             onValueChanged = { v ->
-                viewModel.updateText3D(pushToUndo = false) { it.lighting.softness = v.toFloat() }
+                viewModel.updateText3D(pushToUndo = false, enableSection = CanvasViewModel.Text3DSection.LIGHTING) { it.lighting.softness = v.toFloat() }
             }
             onDragStateChanged = { dragging -> viewModel.setPagingLocked(dragging) }
         }
@@ -85,7 +85,7 @@ class Lighting3DFragment : Fragment() {
             minValue = 0
             maxValue = 100
             onValueChanged = { v ->
-                viewModel.updateText3D(pushToUndo = false) { it.lighting.highlight = v.toFloat() }
+                viewModel.updateText3D(pushToUndo = false, enableSection = CanvasViewModel.Text3DSection.LIGHTING) { it.lighting.highlight = v.toFloat() }
             }
             onDragStateChanged = { dragging -> viewModel.setPagingLocked(dragging) }
         }

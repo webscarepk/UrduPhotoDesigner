@@ -42,7 +42,7 @@ class Extrusion3DFragment : Fragment() {
             viewModel.setPagingLocked(dragging)
         }
         binding.directionPad.onDirectionChanged = { dir ->
-            viewModel.updateText3D(pushToUndo = false) { it.extrusion.direction = dir }
+            viewModel.updateText3D(pushToUndo = false, enableSection = CanvasViewModel.Text3DSection.EXTRUSION) { it.extrusion.direction = dir }
             updateDirectionHelp(dir)
         }
     }
@@ -54,7 +54,7 @@ class Extrusion3DFragment : Fragment() {
             minValue = 0
             maxValue = 80
             onValueChanged = { v ->
-                viewModel.updateText3D(pushToUndo = false) { it.extrusion.depth = v.toFloat() }
+                viewModel.updateText3D(pushToUndo = false, enableSection = CanvasViewModel.Text3DSection.EXTRUSION) { it.extrusion.depth = v.toFloat() }
             }
             onDragStateChanged = { dragging -> viewModel.setPagingLocked(dragging) }
         }
@@ -65,7 +65,7 @@ class Extrusion3DFragment : Fragment() {
             minValue = 0
             maxValue = 20
             onValueChanged = { v ->
-                viewModel.updateText3D(pushToUndo = false) { it.extrusion.bevel = v.toFloat() }
+                viewModel.updateText3D(pushToUndo = false, enableSection = CanvasViewModel.Text3DSection.EXTRUSION) { it.extrusion.bevel = v.toFloat() }
             }
             onDragStateChanged = { dragging -> viewModel.setPagingLocked(dragging) }
         }
@@ -76,7 +76,7 @@ class Extrusion3DFragment : Fragment() {
             minValue = 0
             maxValue = 100
             onValueChanged = { v ->
-                viewModel.updateText3D(pushToUndo = false) { it.extrusion.smoothness = v.toFloat() }
+                viewModel.updateText3D(pushToUndo = false, enableSection = CanvasViewModel.Text3DSection.EXTRUSION) { it.extrusion.smoothness = v.toFloat() }
             }
             onDragStateChanged = { dragging -> viewModel.setPagingLocked(dragging) }
         }

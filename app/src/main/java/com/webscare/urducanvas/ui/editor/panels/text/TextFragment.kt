@@ -1325,6 +1325,11 @@ class TextFragment : Fragment() {
                     val tab = tl.newTab()
                     val tabView = LayoutInflater.from(context).inflate(R.layout.view_panel_tab, tl, false)
                     tabView.findViewById<TextView>(R.id.tabTitle).text = grp
+                    // "Styles" is the one group that drills into categories, so it is the
+                    // one that gets the chevron. Without it nothing tells you the tab does
+                    // more than switch lists.
+                    tabView.findViewById<View>(R.id.tabChevron).visibility =
+                        if (grp == "Styles") View.VISIBLE else View.GONE
                     tab.customView = tabView
                     tl.addTab(tab, false)
                 }
@@ -1418,6 +1423,7 @@ class TextFragment : Fragment() {
             } else {
                 val cat = PresetCategory.values().firstOrNull { it.displayName.equals(selectedPresetCategory, ignoreCase = true) }
                 if (cat != null) TextStylesRepository.getPresetsByCategory(cat, requireContext())
+                    .filterNot { it.id == com.webscare.urducanvas.data.model.TextStylePreset.NONE_ID }
                 else allPresets
             }
         } else {

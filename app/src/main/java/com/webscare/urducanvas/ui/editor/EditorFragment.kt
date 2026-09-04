@@ -108,6 +108,40 @@ class EditorFragment : Fragment() {
     private var _navController: NavController? = null
     private val navController get() = _navController!!
     private var panelsLocked = false
+
+    /**
+     * Whether the docked eraser kit is pushed out of the way. Kept separate from
+     * [panelsLocked] on purpose: the show/hide button is shared, but the choice made while
+     * erasing must not survive back into normal editing, and vice versa.
+     */
+    private var eraserKitCollapsed = false
+
+    /** True while the universal eraser is the active tool — the mode the kit belongs to. */
+    private fun isUniversalEraserMode(): Boolean =
+        viewModel.isEraserActive.value == true &&
+                _navController?.currentDestination?.id != R.id.drawFragment
+
+    /** Last requested state of each docked kit, so a repeat request is a no-op. */
+    private val kitShown = mutableMapOf<View, Boolean>()
+
+    /**
+     * Shows or hides one of the docked side kits with the left cross-slide.
+     *
+     * Always animated, and deliberately deaf to the caller's `animate` flag: entering the
+     * eraser flips `isEraserActive` and `isDrawingMode`, and both observers call
+     * [updateToolbarVisibility] with `animate = false`. The second call used to arrive
+     * mid-slide, cancel the animation and snap the alignment kit to GONE — which is why
+     * the swap looked instant. Caching the last requested state makes that second call a
+     * no-op so the slide runs to completion.
+     */
+    private fun updateKitVisibility(view: View, shouldShow: Boolean) {
+        if (kitShown[view] == shouldShow) return
+        kitShown[view] = shouldShow
+        updateIconVisibility(
+            view, shouldShow, animate = true,
+            animShow = R.anim.slide_in, animHide = R.anim.slide_out
+        )
+    }
     private lateinit var canvasSize: CanvasSize
     private var currentUnit = UnitType.PIXELS
     private val viewModel: CanvasViewModel by activityViewModels()
@@ -145,6 +179,7 @@ class EditorFragment : Fragment() {
 
     // Fragments that open on element selection are NOT expandable — the sheet
     // must be locked collapsed while any of these destinations is active.
+    /** Panels whose sheet is locked collapsed — they size themselves and must not be dragged open. */
     private val nonExpandableDestinations = setOf(
         R.id.adjustmentsParentFragment,
         R.id.shapeFragment,
@@ -153,6 +188,13 @@ class EditorFragment : Fragment() {
         R.id.universalEraserFragment,
         R.id.drawFragment
     )
+
+    /**
+     * Panels that collapse the bottom nav. Deliberately not the same set as
+     * [nonExpandableDestinations]: the brush panel wants a fixed-height sheet *and* the
+     * nav, since browsing brushes is not a modal task and the nav is how you leave.
+     */
+    private val navHidingDestinations = nonExpandableDestinations - R.id.drawFragment
     private var isPanelExpandable = true
     private var currentDragHandle: View? = null  // stored so we can block/restore touch
     private val registeredDragHandles = mutableListOf<View>()
@@ -240,8 +282,7 @@ class EditorFragment : Fragment() {
 
         _navController?.addOnDestinationChangedListener { _, destination, _ ->
 
-            val isAdjustment = destination.id in nonExpandableDestinations
-            animateBottomNav(show = !isAdjustment)
+            animateBottomNav(show = destination.id !in navHidingDestinations)
 
             updateToolbarMode(animate = true)
             updateToolbarVisibility(viewModel.selectedElements.value.orEmpty(), animate = false)
@@ -1354,6 +1395,48 @@ class EditorFragment : Fragment() {
     }
 
     // 👇 new helper
+    /**
+     * The two controls the universal eraser actually has. Softness is shown the way the
+     * brush panel shows it — as a percentage where 100% is fully feathered — while the
+     * model stores hardness, so the two are inverses of each other here.
+     */
+    private fun setupEraserKit() {
+        binding.eraserSizeSlider.apply {
+            minValue = 1
+            maxValue = 150
+            caption = getString(R.string.size_caps)
+            onDragStart = { viewModel.showSizePreview(value.toFloat(), isEraser = true) }
+            onDragEnd = { viewModel.hideSizePreview() }
+            onValueChanged = { v ->
+                viewModel.setEraserThickness(v.toFloat())
+                viewModel.updateSizePreview(v.toFloat(), isEraser = true)
+            }
+        }
+
+        binding.eraserSoftSlider.apply {
+            minValue = 0
+            maxValue = 100
+            valueSuffix = "%"
+            caption = getString(R.string.soft_caps)
+            onDragStart = {
+                viewModel.showSizePreview(hardness = 1f - value / 100f, isEraser = true)
+            }
+            onDragEnd = { viewModel.hideSizePreview() }
+            onValueChanged = { v ->
+                val hardness = 1f - v / 100f
+                viewModel.setEraserHardness(hardness)
+                viewModel.updateSizePreview(hardness = hardness, isEraser = true)
+            }
+        }
+
+        viewModel.eraserThickness.observe(viewLifecycleOwner) {
+            binding.eraserSizeSlider.value = (it ?: 50f).toInt()
+        }
+        viewModel.eraserHardness.observe(viewLifecycleOwner) {
+            binding.eraserSoftSlider.value = ((1f - (it ?: 1f)) * 100).toInt()
+        }
+    }
+
     private fun resetPanelsOnSelectionChange() {
         binding.seekBarOpacity.isVisible = false
         binding.opacityValue.isVisible = false
@@ -1369,8 +1452,7 @@ class EditorFragment : Fragment() {
                 _navController?.currentDestination?.id == R.id.drawFragment
 
         if (isEraserOrDrawingMode) {
-            // Hide "more options" toggle button, side tools, alignment kit, and FAB in eraser/drawing mode
-            binding.showHideContainer.visibility = View.GONE
+            // Side tools and the FAB have nothing to act on while erasing or drawing.
             binding.fabContainer.visibility = View.GONE
             resetPanelsOnSelectionChange()
             updateIconVisibility(binding.opacityPane, false, animate = animate, animHide = R.anim.slide_out_left)
@@ -1379,10 +1461,24 @@ class EditorFragment : Fragment() {
             updateIconVisibility(binding.copyIcon, false, animate = animate, animHide = R.anim.slide_out_left)
             updateIconVisibility(binding.cutOutIcon, false, animate = animate, animHide = R.anim.slide_out_left)
             updateIconVisibility(binding.eraserIcon, false, animate = animate, animHide = R.anim.slide_out_left)
-            updateIconVisibility(binding.alignmentKit, false, animate = animate, animHide = R.anim.slide_out)
+            updateKitVisibility(binding.alignmentKit, false)
             updateIconVisibility(binding.selection, false, animate = animate)
+
+            // The eraser gets the alignment kit's slot and its show/hide button. The button
+            // stays on screen and keeps working, but while erasing it governs nothing but
+            // this kit — and the user's own collapsed/expanded choice is remembered on the
+            // way in and restored on the way out.
+            val isUniversalErase = isUniversalEraserMode()
+            binding.showHideContainer.visibility =
+                if (isUniversalErase) View.VISIBLE else View.GONE
+            updateKitVisibility(binding.eraserKit, isUniversalErase && !eraserKitCollapsed)
             return
         }
+
+        updateKitVisibility(binding.eraserKit, false)
+        // Back out of the eraser: the shared chevron points wherever the user's own panel
+        // setting says it should, not wherever they left the eraser kit.
+        binding.showHide.rotation = if (panelsLocked) 180f else 0f
 
         val isTableEdit = viewModel.isTableEditMode.value == true
         if (isTableEdit) {
@@ -1395,7 +1491,7 @@ class EditorFragment : Fragment() {
             updateIconVisibility(binding.copyIcon, false, animate = animate, animHide = R.anim.slide_out_left)
             updateIconVisibility(binding.cutOutIcon, false, animate = animate, animHide = R.anim.slide_out_left)
             updateIconVisibility(binding.eraserIcon, false, animate = animate, animHide = R.anim.slide_out_left)
-            updateIconVisibility(binding.alignmentKit, false, animate = animate, animHide = R.anim.slide_out)
+            updateKitVisibility(binding.alignmentKit, false)
             updateIconVisibility(binding.selection, false, animate = animate)
             return
         }
@@ -1420,8 +1516,7 @@ class EditorFragment : Fragment() {
                 animHide = R.anim.slide_out_left)
             updateIconVisibility(binding.eraserIcon, false, animate = animate,
                 animHide = R.anim.slide_out_left)
-            updateIconVisibility(binding.alignmentKit, false, animate = animate,
-                animHide = R.anim.slide_out)
+            updateKitVisibility(binding.alignmentKit, false)
             updateIconVisibility(binding.selection, false, animate = animate)
             return
         }
@@ -1466,12 +1561,7 @@ class EditorFragment : Fragment() {
             binding.eraserIcon, showRemoveBg, animate = animate,
             animShow = R.anim.slide_in_left, animHide = R.anim.slide_out_left
         )
-        updateIconVisibility(
-            binding.alignmentKit,
-            anySelected, animate = animate,
-            animShow = R.anim.slide_in,
-            animHide = R.anim.slide_out
-        )
+        updateKitVisibility(binding.alignmentKit, anySelected)
         updateIconVisibility(binding.selection, showAlignWithSelection, animate = animate)
     }
 
@@ -2035,12 +2125,21 @@ class EditorFragment : Fragment() {
             }
         }
         binding.showHide.addPressEffect {
-            panelsLocked = !panelsLocked
-            if (panelsLocked) {
-                resetPanelsOnSelectionChange()
-                binding.showHide.animate().rotation(180f).setDuration(300).start()
+            // One button, two jobs, depending on the mode. While erasing it slides the
+            // eraser kit in and out and leaves the user's normal panel setting untouched,
+            // so exiting the eraser restores whatever they had before.
+            if (isUniversalEraserMode()) {
+                eraserKitCollapsed = !eraserKitCollapsed
+                binding.showHide.animate()
+                    .rotation(if (eraserKitCollapsed) 180f else 0f).setDuration(300).start()
             } else {
-                binding.showHide.animate().rotation(0f).setDuration(300).start()
+                panelsLocked = !panelsLocked
+                if (panelsLocked) {
+                    resetPanelsOnSelectionChange()
+                    binding.showHide.animate().rotation(180f).setDuration(300).start()
+                } else {
+                    binding.showHide.animate().rotation(0f).setDuration(300).start()
+                }
             }
             updateToolbarVisibility(viewModel.selectedElements.value ?: emptyList())
         }
@@ -2206,13 +2305,18 @@ class EditorFragment : Fragment() {
             view?.post {
                 val selected = viewModel.selectedElements.value?.firstOrNull()
                 if (selected != null) {
+                    // No panel: size and softness are the only controls, and they ride in
+                    // on the docked kit where the alignment kit was.
+                    eraserKitCollapsed = false
+                    binding.showHide.rotation = 0f
                     viewModel.setEraserActive(true)
                     viewModel.enterDrawingMode(requireActivity(), selected)
-                    val navOptions = NavOptions.Builder().setPopUpTo(R.id.editorFragment, false).build()
-                    _navController?.navigate(R.id.universalEraserFragment, null, navOptions)
+                    updateToolbarVisibility(viewModel.selectedElements.value.orEmpty())
                 }
             }
         }
+
+        setupEraserKit()
 
         binding.zoom.addPressEffect {
             showZoomPopup(binding.zoom)
@@ -2257,12 +2361,11 @@ class EditorFragment : Fragment() {
             }
         }
 
-        binding.btnClearDrawing.addPressEffect {
-            viewModel.clearDrawingSession()
-        }
-
+        // Reset wipes the strokes laid down in this session — the destructive action the
+        // delete glyph used to carry. Leaving the panel is now the shared back button, so
+        // draw mode no longer needs a tool of its own for that.
         binding.btnResetBrushDefaults.addPressEffect {
-            viewModel.resetBrushSettings()
+            viewModel.clearDrawingSession()
         }
 
         initPanelSheet()
@@ -2278,6 +2381,24 @@ class EditorFragment : Fragment() {
 
     private var currentToolbarMode: EditorToolbarMode? = null
     private var currentBackIsCross: Boolean? = null
+
+    /**
+     * Single source of truth for whether a toolbar mode shows the back button. The target
+     * state and the "was it visible before" test used to be two hand-written lists, and
+     * they had already drifted — TABLE_EDIT showed back but the animation believed it did
+     * not, so the button snapped instead of sliding.
+     *
+     * Every mode now shows it: DRAW was the last holdout, and it was the one mode with no
+     * way out of the panel. The enum is kept exhaustive so a future mode has to state its
+     * answer rather than inherit one.
+     */
+    private fun modeShowsBack(mode: EditorToolbarMode): Boolean = when (mode) {
+        EditorToolbarMode.NORMAL,
+        EditorToolbarMode.ERASER,
+        EditorToolbarMode.ADJUSTMENT,
+        EditorToolbarMode.TABLE_EDIT,
+        EditorToolbarMode.DRAW -> true
+    }
 
     private fun updateToolbarMode(animate: Boolean = true) {
         val b = _binding ?: return
@@ -2344,10 +2465,9 @@ class EditorFragment : Fragment() {
             else -> b.normalTools
         }
 
-        val showBack = targetMode == EditorToolbarMode.NORMAL ||
-                targetMode == EditorToolbarMode.ERASER ||
-                targetMode == EditorToolbarMode.ADJUSTMENT ||
-                targetMode == EditorToolbarMode.TABLE_EDIT
+        // DRAW keeps the back button: the brush panel used to offer a delete glyph and no
+        // way out, so leaving meant reaching for the system back.
+        val showBack = modeShowsBack(targetMode)
 
         val showGrid = targetMode == EditorToolbarMode.NORMAL
 
@@ -2411,7 +2531,7 @@ class EditorFragment : Fragment() {
             .start()
 
         // 3. Back button icon flip with 3D rotation and bounce
-        val isBackVisibleBefore = (previousMode == EditorToolbarMode.NORMAL || previousMode == EditorToolbarMode.ERASER || previousMode == EditorToolbarMode.ADJUSTMENT)
+        val isBackVisibleBefore = previousMode != null && modeShowsBack(previousMode)
         if (showBack && isBackVisibleBefore) {
             // Back stays visible, animate icon change if different
             val prevBackIcon = if (previousMode == EditorToolbarMode.ADJUSTMENT || previousMode == EditorToolbarMode.ERASER) R.drawable.ic_close else R.drawable.ic_back

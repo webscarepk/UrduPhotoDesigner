@@ -86,4 +86,19 @@ data class TextStylePreset(
     val hasGlossHighlight: Boolean = false,
     val hasFoldedRibbonFlaps: Boolean = false,
     val isCustomUserSaved: Boolean = false
-)
+) {
+    companion object {
+        /** Id of the synthetic "no style" cell that leads every category grid. */
+        const val NONE_ID = "none"
+
+        /**
+         * A preset with every styling property left at its default. Applying it through
+         * the ordinary preset path clears stroke, extrusion, bevel, emboss, glow, shadow
+         * and label in one step, so "None" needs no separate reset routine. The element's
+         * own fill colour survives — [CanvasViewModel.applyTextStylePreset] falls back to
+         * it when the preset carries no textColor.
+         */
+        fun none(category: PresetCategory): TextStylePreset =
+            TextStylePreset(id = NONE_ID, name = "None", category = category)
+    }
+}

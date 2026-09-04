@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="wrap_content"
     android:layout_height="match_parent"
     android:paddingHorizontal="14dp">
@@ -15,6 +16,22 @@
         android:singleLine="true"
         android:textColor="@color/tab_unselected_text"
         android:textSize="13sp" />
+
+    <!-- Drill-in affordance. Hidden unless a panel opts a tab into a category list —
+         today only the brush panel's Style tab. -->
+    <ImageView
+        android:id="@+id/tabChevron"
+        android:layout_width="14dp"
+        android:layout_height="14dp"
+        android:layout_alignBottom="@id/tabTitle"
+        android:layout_marginStart="3dp"
+        android:layout_toEndOf="@id/tabTitle"
+        android:background="@drawable/bg_tab_chevron"
+        android:importantForAccessibility="no"
+        android:padding="2dp"
+        android:src="@drawable/ic_dropdown"
+        android:visibility="gone"
+        app:tint="@color/tab_selected_text" />
 
     <View
         android:id="@+id/tabDot"

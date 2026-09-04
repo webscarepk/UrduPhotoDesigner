@@ -14,9 +14,14 @@ import com.webscare.urducanvas.common.canvas.enums.BrushStyle
 import com.webscare.urducanvas.common.utils.Utils.addPressEffect
 
 class BrushStyleAdapter(
-    private val styles: List<BrushStyle>,
+    private var styles: List<BrushStyle>,
     private val onStyleSelected: (BrushStyle) -> Unit
 ) : RecyclerView.Adapter<BrushStyleAdapter.StyleViewHolder>() {
+
+    fun updateStyles(newStyles: List<BrushStyle>) {
+        styles = newStyles
+        notifyDataSetChanged()
+    }
 
     var attachedRecyclerView: RecyclerView? = null
         private set
@@ -59,11 +64,12 @@ class BrushStyleAdapter(
     override fun onBindViewHolder(holder: StyleViewHolder, position: Int) {
         val style = styles[position]
 
-        val isSelected = selectedStyle != null && (
-                style == selectedStyle ||
-                (selectedStyle == BrushStyle.BRUSH && style == BrushStyle.ROUND_BRUSH) ||
-                (selectedStyle == BrushStyle.PEN && style == BrushStyle.INK_PEN)
-        )
+        val isSelected = style == selectedStyle
+
+        // The cell is a 44dp swatch with no room for a caption, so the brush's name lives
+        // here — it is what TalkBack reads and what a long-press tooltip shows.
+        holder.itemView.contentDescription = style.displayName
+        androidx.appcompat.widget.TooltipCompat.setTooltipText(holder.itemView, style.displayName)
 
         val cardView = holder.itemView as? MaterialCardView
         if (cardView != null) {

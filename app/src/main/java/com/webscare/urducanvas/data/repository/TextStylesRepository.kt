@@ -236,12 +236,17 @@ object TextStylesRepository {
         return custom + cachedPresets
     }
 
+    /**
+     * Every category leads with the synthetic "None" cell so the grid always shows what is
+     * currently applied — including the case where nothing is.
+     */
     fun getPresetsByCategory(category: PresetCategory, context: Context): List<TextStylePreset> {
+        val none = TextStylePreset.none(category)
         if (category == PresetCategory.MY_STYLES) {
-            return getCustomUserSavedStyles(context)
+            return listOf(none) + getCustomUserSavedStyles(context)
         }
         ensurePresetsLoaded(context)
-        return cachedPresets.filter { it.category == category }
+        return listOf(none) + cachedPresets.filter { it.category == category }
     }
 
     // -------------------------------------------------------------

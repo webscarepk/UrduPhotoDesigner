@@ -71,6 +71,35 @@
         <item name="android:backgroundDimEnabled">false</item>
     </style>
 
+    <!--
+        Unified search field.
+
+        Home's search bar is the reference; every other screen had re-declared the same
+        widget by hand and drifted — templates and the fonts list used wrap_content
+        instead of a fixed 40dp so they sat at a different height, the fonts list was
+        15sp against everyone else's 12sp, and the magnifier was tinted on some screens
+        and not others. Each layout keeps its own id, width, hint and constraints; only
+        the appearance comes from here.
+    -->
+    <style name="Widget.UrduCanvas.SearchBar" parent="">
+        <item name="android:layout_height">40dp</item>
+        <item name="android:background">@drawable/button_bg_stroke_fill</item>
+        <item name="android:fontFamily">@font/regular</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">@color/black</item>
+        <item name="android:textColorHint">@color/gray</item>
+        <item name="android:drawableEnd">@drawable/ic_search</item>
+        <item name="android:drawableTint">@color/gray</item>
+        <item name="android:drawablePadding">12dp</item>
+        <item name="android:paddingHorizontal">12dp</item>
+        <item name="android:paddingVertical">10dp</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:inputType">text</item>
+        <item name="android:imeOptions">actionSearch</item>
+        <item name="android:translationZ">1dp</item>
+    </style>
+
     <!-- Unified Editor Properties Panel TabLayout Style -->
     <style name="Widget.UrduCanvas.TabLayout" parent="Widget.MaterialComponents.TabLayout">
         <item name="tabMode">scrollable</item>

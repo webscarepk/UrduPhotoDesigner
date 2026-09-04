@@ -106,7 +106,6 @@ class BrushColorFragment : Fragment() {
                 val selectedColor = color.colorCode.toColorInt()
                 viewModel.setBrushColor(selectedColor)
                 viewModel.setBrushGradient(null)
-                viewModel.enterDrawingMode(requireActivity())
             },
             onNoneSelected = {
                 viewModel.setBrushColor(android.R.color.transparent)
@@ -130,7 +129,6 @@ class BrushColorFragment : Fragment() {
             gradientList = emptyList(),
             onGradientSelected = { _, item ->
                 viewModel.setBrushGradient(item)
-                viewModel.enterDrawingMode(requireActivity())
             },
             onGradientEditSelected = { _, item ->
                 viewModel.startPickingGradient(GradientPickerTarget.DRAW_STROKE)

@@ -299,6 +299,13 @@
     <string name="multiply">Multiply</string>
     <string name="screen">Screen</string>
     <string name="search_templates">Search templates</string>
+    <string name="search_brushes">Search brushes</string>
+    <string name="materials">Materials</string>
+    <string name="style">Style</string>
+    <string name="both">Both</string>
+    <string name="size_caps">SIZE</string>
+    <string name="soft_caps">SOFT</string>
+    <string name="no_brushes_match">No brushes match “%1$s”</string>
     <string name="hand_tool">Hand tool</string>
     <string name="invert_selection">Invert selection</string>
     <string name="select_subject">Select subject</string>

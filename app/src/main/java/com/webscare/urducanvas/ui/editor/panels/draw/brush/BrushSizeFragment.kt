@@ -42,7 +42,6 @@ class BrushSizeFragment : Fragment() {
     private fun setupSmoothingToggle() {
         binding.smoothEdgesSwitch.onCheckedChangeListener = { isChecked ->
             viewModel.setBrushSmoothingEnabled(isChecked)
-            viewModel.enterDrawingMode(requireActivity())
         }
     }
 
@@ -57,7 +56,6 @@ class BrushSizeFragment : Fragment() {
                     if (fromUser) {
                         viewModel.setBrushThickness(thickness)
                         viewModel.updateSizePreview(thickness)
-                        viewModel.enterDrawingMode(requireActivity())
                     }
                     updatePresetSelection(thickness.toInt())
                 }
@@ -83,7 +81,6 @@ class BrushSizeFragment : Fragment() {
                         val hardness = 1f - (progress / 100f)
                         viewModel.setBrushHardness(hardness)
                         viewModel.updateSizePreview(hardness = hardness, isEraser = false)
-                        viewModel.enterDrawingMode(requireActivity())
                     }
                 }
 
@@ -108,7 +105,6 @@ class BrushSizeFragment : Fragment() {
                         val opacity = progress / 100f
                         viewModel.setBrushOpacity(opacity)
                         viewModel.updateSizePreview(opacity = opacity, isEraser = false)
-                        viewModel.enterDrawingMode(requireActivity())
                     }
                 }
 
@@ -139,7 +135,6 @@ class BrushSizeFragment : Fragment() {
         presetViews.forEach { (view, size) ->
             view.addPressEffect {
                 viewModel.setBrushThickness(size.toFloat())
-                viewModel.enterDrawingMode(requireActivity())
             }
         }
     }

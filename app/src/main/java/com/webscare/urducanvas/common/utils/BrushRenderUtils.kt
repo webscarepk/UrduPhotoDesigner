@@ -2,7 +2,6 @@ package com.webscare.urducanvas.common.utils
 
 import android.graphics.BlurMaskFilter
 import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.DashPathEffect
 import android.graphics.LinearGradient
 import android.graphics.Matrix
@@ -14,18 +13,32 @@ import android.graphics.PorterDuffXfermode
 import android.graphics.RadialGradient
 import android.graphics.Shader
 import android.graphics.SweepGradient
-import com.webscare.urducanvas.common.canvas.enums.BrushStyle
+import com.webscare.urducanvas.common.canvas.enums.BrushEngine
 import com.webscare.urducanvas.common.canvas.enums.GradientType
+import com.webscare.urducanvas.common.canvas.model.BrushProfile
 import com.webscare.urducanvas.common.canvas.model.GradientItem
 import com.webscare.urducanvas.common.canvas.model.StrokeData
 import java.util.Random
+import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.sin
 
+/**
+ * Turns a [StrokeData] into pixels.
+ *
+ * Every brush routes through [BrushProfile]: the profile picks the drawing routine and
+ * supplies its parameters, so adding a brush is a row in the catalog rather than a new
+ * branch here. The three non-stroke engines — fitted shapes, scattered motifs and
+ * sprites — are handled by [BrushStampEngine] instead; see [BrushEngine].
+ *
+ * DETERMINISM: scatter and sprite brushes redraw on every frame, so their randomness is
+ * seeded from the stroke's own geometry. The same stroke always produces the same marks.
+ */
 object BrushRenderUtils {
+
     fun createBackgroundGradientShader(
         gradientItem: GradientItem, width: Float, height: Float
     ): Shader {
@@ -73,137 +86,189 @@ object BrushRenderUtils {
         return baseShader
     }
 
+    // ── Paint construction ────────────────────────────────────────────────────
+
+    /** Effective stroke width for a brush — the user's thickness through its profile. */
+    fun strokeWidthFor(stroke: StrokeData): Float =
+        (stroke.thickness * BrushProfile.of(stroke.style).widthScale).coerceAtLeast(0.5f)
+
     fun makeStrokePaint(stroke: StrokeData, width: Int, height: Int): Paint {
+        val profile = BrushProfile.of(stroke.style)
+        val hardness = stroke.hardness.coerceIn(0f, 1f)
+        val softness = 1f - hardness
+        val strokeWidth = strokeWidthFor(stroke)
+
         return Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
-            strokeJoin = Paint.Join.ROUND
-            strokeCap = Paint.Cap.ROUND
-            strokeWidth = stroke.thickness
+            strokeCap = profile.cap
+            strokeJoin = profile.join
+            this.strokeWidth = strokeWidth
 
             // 🌈 Gradient or solid color
             stroke.gradient?.let {
                 shader = createBackgroundGradientShader(it, width.toFloat(), height.toFloat())
             } ?: run { color = stroke.color }
 
-            val hardness = stroke.hardness.coerceIn(0f, 1f)
-            val softness = (1f - hardness).coerceIn(0f, 1f)
-            val opacityFactor = stroke.opacity.coerceIn(0f, 1f)
+            alpha = profile.alphaFor(hardness)
 
-            // 🖌️ Style-dependent look
-            when (stroke.style) {
-                BrushStyle.PENCIL -> {
-                    alpha = (140 + 100 * hardness).toInt()
-                    pathEffect = DashPathEffect(floatArrayOf(3f, 3f, 1f, 2f), 0f)
-                    maskFilter = if (softness > 0.05f) BlurMaskFilter((softness * stroke.thickness * 0.25f).coerceAtLeast(0.5f), BlurMaskFilter.Blur.NORMAL) else null
-                }
+            profile.dashIntervals(strokeWidth)?.let { pathEffect = DashPathEffect(it, 0f) }
 
-                BrushStyle.MARKER -> {
-                    strokeCap = Paint.Cap.SQUARE
-                    alpha = (100 + 140 * hardness).toInt()
-                    maskFilter = if (softness > 0.05f) BlurMaskFilter((softness * stroke.thickness * 0.2f).coerceAtLeast(0.5f), BlurMaskFilter.Blur.NORMAL) else null
-                }
+            val blurRadius = when {
+                profile.blurFactor <= 0f -> 0f
+                profile.blurAlways -> strokeWidth * profile.blurFactor * (0.5f + 0.5f * softness)
+                softness > 0.05f -> softness * strokeWidth * profile.blurFactor
+                else -> 0f
+            }
+            maskFilter = if (blurRadius >= 0.5f) {
+                BlurMaskFilter(blurRadius, profile.blurStyle)
+            } else null
 
-                BrushStyle.HIGHLIGHTER -> {
-                    strokeCap = Paint.Cap.BUTT
-                    alpha = (80 + 80 * hardness).toInt()
-                    maskFilter = if (softness > 0.05f) BlurMaskFilter((softness * stroke.thickness * 0.2f).coerceAtLeast(0.5f), BlurMaskFilter.Blur.NORMAL) else null
-                }
-
-                BrushStyle.AIRBRUSH, BrushStyle.SOFT_AIR -> {
-                    val blurRadius = (stroke.thickness * (0.35f + 0.35f * softness)).coerceAtLeast(1f)
-                    maskFilter = BlurMaskFilter(blurRadius, BlurMaskFilter.Blur.NORMAL)
-                    alpha = (90 + 120 * hardness).toInt()
-                }
-
-                BrushStyle.CHALK -> {
-                    alpha = (160 + 80 * hardness).toInt()
-                    pathEffect = DashPathEffect(floatArrayOf(2f, 3f, 4f, 2f, 1f, 3f), 0f)
-                    maskFilter = if (softness > 0.05f) BlurMaskFilter((softness * stroke.thickness * 0.2f).coerceAtLeast(0.5f), BlurMaskFilter.Blur.NORMAL) else null
-                }
-
-                BrushStyle.CHARCOAL, BrushStyle.PASTEL -> {
-                    alpha = (180 + 75 * hardness).toInt()
-                    pathEffect = DashPathEffect(floatArrayOf(4f, 2f, 6f, 3f, 2f, 1f), 0f)
-                    maskFilter = if (softness > 0.05f) BlurMaskFilter((softness * stroke.thickness * 0.3f).coerceAtLeast(0.5f), BlurMaskFilter.Blur.NORMAL) else null
-                }
-
-                BrushStyle.WATERCOLOR -> {
-                    alpha = (70 + 90 * hardness).toInt()
-                    val blurRadius = (stroke.thickness * (0.15f + 0.3f * softness)).coerceAtLeast(0.5f)
-                    maskFilter = BlurMaskFilter(blurRadius, BlurMaskFilter.Blur.NORMAL)
-                }
-
-                BrushStyle.FINE_LINER -> {
-                    strokeWidth = (stroke.thickness * 0.4f).coerceAtLeast(1.5f)
-                    alpha = (200 + 55 * hardness).toInt()
-                    maskFilter = if (softness > 0.05f) BlurMaskFilter((softness * stroke.thickness * 0.15f).coerceAtLeast(0.5f), BlurMaskFilter.Blur.NORMAL) else null
-                }
-
-                BrushStyle.DASHED -> {
-                    alpha = 255
-                    val dashLen = (stroke.thickness * 2.5f).coerceAtLeast(6f)
-                    pathEffect = DashPathEffect(floatArrayOf(dashLen, dashLen * 0.8f), 0f)
-                    maskFilter = if (softness > 0.05f) BlurMaskFilter((softness * stroke.thickness * 0.25f).coerceAtLeast(0.5f), BlurMaskFilter.Blur.NORMAL) else null
-                }
-
-                BrushStyle.DOTTED -> {
-                    alpha = 255
-                    strokeCap = Paint.Cap.ROUND
-                    val dotSpacing = (stroke.thickness * 1.8f).coerceAtLeast(6f)
-                    pathEffect = DashPathEffect(floatArrayOf(1f, dotSpacing), 0f)
-                    maskFilter = if (softness > 0.05f) BlurMaskFilter((softness * stroke.thickness * 0.25f).coerceAtLeast(0.5f), BlurMaskFilter.Blur.NORMAL) else null
-                }
-
-                BrushStyle.CRAYON -> {
-                    alpha = (190 + 60 * hardness).toInt()
-                    pathEffect = DashPathEffect(floatArrayOf(2f, 2f, 4f, 2f), 0f)
-                    maskFilter = if (softness > 0.05f) BlurMaskFilter((softness * stroke.thickness * 0.25f).coerceAtLeast(0.5f), BlurMaskFilter.Blur.NORMAL) else null
-                }
-
-                BrushStyle.NEON_GLOW -> {
-                    alpha = 255
-                    val glowRadius = (stroke.thickness * (0.5f + 0.4f * softness)).coerceAtLeast(4f)
-                    maskFilter = BlurMaskFilter(glowRadius, BlurMaskFilter.Blur.SOLID)
-                }
-
-                BrushStyle.PIXEL -> {
-                    strokeCap = Paint.Cap.SQUARE
-                    strokeJoin = Paint.Join.MITER
-                    alpha = 255
-                    maskFilter = null
-                }
-
-                BrushStyle.OIL_PAINT, BrushStyle.TEXTURE -> {
-                    alpha = 240
-                    maskFilter = if (softness > 0.05f) BlurMaskFilter(softness * stroke.thickness * 0.35f, BlurMaskFilter.Blur.NORMAL) else null
-                }
-
-                BrushStyle.ROUND_BRUSH, BrushStyle.BRUSH -> {
-                    maskFilter = if (softness > 0.05f)
-                        BlurMaskFilter((softness * stroke.thickness * 0.4f).coerceAtLeast(0.5f), BlurMaskFilter.Blur.NORMAL)
-                    else null
-                    alpha = (180 + 75 * hardness).toInt()
-                }
-
-                BrushStyle.INK_PEN, BrushStyle.PEN, BrushStyle.BRUSH_PEN -> {
-                    alpha = (140 + 115 * hardness).toInt()
-                    maskFilter = if (softness > 0.05f) BlurMaskFilter((softness * stroke.thickness * 0.2f).coerceAtLeast(0.5f), BlurMaskFilter.Blur.NORMAL) else null
-                }
-
-                BrushStyle.ERASER -> {
-                    xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
-                    maskFilter = null
-                }
-
-                else -> {
-                    alpha = (180 + 75 * hardness).toInt()
-                    maskFilter = if (softness > 0.05f) BlurMaskFilter((softness * stroke.thickness * 0.35f).coerceAtLeast(0.5f), BlurMaskFilter.Blur.NORMAL) else null
-                }
+            if (profile.kind == BrushProfile.Kind.ERASE) {
+                xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
+                maskFilter = null
             }
 
-            alpha = (alpha * opacityFactor).toInt().coerceIn(0, 255)
+            alpha = (alpha * stroke.opacity.coerceIn(0f, 1f)).toInt().coerceIn(0, 255)
         }
     }
+
+    // ── Dispatch ──────────────────────────────────────────────────────────────
+
+    fun drawSingleStroke(canvas: Canvas, stroke: StrokeData, paintAlpha: Int) {
+        if (stroke.path == null) return
+        val finalAlpha = (paintAlpha * stroke.opacity.coerceIn(0f, 1f)).toInt().coerceIn(0, 255)
+
+        // Fitted shapes, scattered motifs and sprites are not strokes at all.
+        if (stroke.style.engine != BrushEngine.STROKE) {
+            BrushStampEngine.draw(canvas, stroke, finalAlpha)
+            return
+        }
+
+        drawByKind(canvas, stroke, finalAlpha)
+    }
+
+    /**
+     * Preview rendering for the style swatches. Same routines as the canvas — a swatch
+     * that lies about the mark is worse than no swatch.
+     *
+     * The lambdas are legacy parameters kept so existing callers compile; the dispatch
+     * below no longer needs them.
+     */
+    @Suppress("UNUSED_PARAMETER")
+    fun drawStrokePreview(
+        canvas: Canvas,
+        stroke: StrokeData,
+        paintAlpha: Int,
+        width: Int,
+        height: Int,
+        makePaint: (StrokeData, Int, Int) -> Paint = ::makeStrokePaint,
+        drawBrush: (Canvas, StrokeData, Int) -> Unit = ::drawBrushStroke,
+        drawPen: (Canvas, StrokeData, Int) -> Unit = ::drawTaperedPenStroke
+    ) {
+        if (stroke.path == null) return
+        if (stroke.style.engine != BrushEngine.STROKE) {
+            BrushStampEngine.draw(canvas, stroke, paintAlpha)
+            return
+        }
+        drawByKind(canvas, stroke, paintAlpha)
+    }
+
+    private fun drawByKind(canvas: Canvas, stroke: StrokeData, alpha: Int) {
+        when (BrushProfile.of(stroke.style).kind) {
+            BrushProfile.Kind.TAPERED -> drawTaperedPenStroke(canvas, stroke, alpha)
+            BrushProfile.Kind.BRISTLE -> drawFlatBrushStroke(canvas, stroke, alpha)
+            BrushProfile.Kind.WET -> drawWatercolorStroke(canvas, stroke, alpha)
+            BrushProfile.Kind.SCATTER -> drawSplatterStroke(canvas, stroke, alpha)
+            BrushProfile.Kind.GLOW -> drawGlowStroke(canvas, stroke, alpha)
+            BrushProfile.Kind.NIB -> drawCalligraphyStroke(canvas, stroke, alpha)
+            BrushProfile.Kind.TEXTURED -> drawTexturedStroke(canvas, stroke, alpha)
+            BrushProfile.Kind.SOLID,
+            BrushProfile.Kind.ERASE -> drawBrushStroke(canvas, stroke, alpha)
+        }
+    }
+
+    /**
+     * TEXTURED — grain that runs *with* the drag.
+     *
+     * The stroke is laid down as a set of thin streaks running the length of the path,
+     * each wandering slightly, each broken into segments that are randomly dropped or
+     * dimmed. That is what a pencil's tooth, charcoal skipping over paper, and a dry
+     * brush's split bristles all look like, and it is why these brushes now read as
+     * different marks rather than as one line with a dotted overlay.
+     */
+    fun drawTexturedStroke(canvas: Canvas, stroke: StrokeData, paintAlpha: Int) {
+        val path = stroke.path ?: return
+        val measure = PathMeasure(path, false)
+        val length = measure.length
+        if (length <= 0f) return
+
+        val profile = BrushProfile.of(stroke.style)
+        val fullWidth = strokeWidthFor(stroke)
+        val streaks = profile.streaks.coerceAtLeast(1)
+
+        val paint = makeStrokePaint(stroke, canvas.width, canvas.height).apply {
+            style = Paint.Style.STROKE
+            strokeCap = Paint.Cap.ROUND
+            strokeJoin = Paint.Join.ROUND
+            isAntiAlias = true
+            pathEffect = null           // grain comes from the streaks, not a dash
+            alpha = paintAlpha
+        }
+
+        val baseAlpha = paint.alpha
+        // Overlapping, not tiled: at 1.6 the streaks sat side by side and a dry brush
+        // came out looking like railway track. 2.2 makes them merge into a mass that the
+        // dropout then breaks up.
+        val streakWidth = (fullWidth / streaks * 2.2f).coerceAtLeast(1f)
+        // Grain period is a property of the paper and the brush head, not of how wide the
+        // stroke is: a broad marker on rough paper has the same tooth as a narrow one.
+        // Scaling the segment straight off thickness gave a 23px step on a 26px-wide
+        // swatch — four segments per streak, which read as blocky bars rather than grain.
+        val step = (fullWidth * profile.streakStep * 0.28f).coerceIn(2f, 9f)
+        val random = seededRandom(stroke)
+
+        val pos = FloatArray(2)
+        val tan = FloatArray(2)
+
+        for (s in 0 until streaks) {
+            // Spread the streaks across the nib, edges lighter than the middle so the
+            // stroke has a soft shoulder instead of a hard band.
+            val offsetFactor = (s - (streaks - 1) / 2f) / ((streaks - 1) / 2f).coerceAtLeast(0.5f)
+            val baseOffset = offsetFactor * fullWidth * 0.5f
+            val edgeFade = 1f - 0.45f * kotlin.math.abs(offsetFactor)
+
+            var dist = 0f
+            var penDown = false
+            var lastX = 0f
+            var lastY = 0f
+
+            while (dist <= length) {
+                measure.getPosTan(dist, pos, tan)
+                val len = hypot(tan[0], tan[1])
+                val perpX = if (len > 0) -tan[1] / len else 0f
+                val perpY = if (len > 0) tan[0] / len else 1f
+
+                val wander = (random.nextFloat() - 0.5f) * profile.streakJitter * fullWidth
+                val x = pos[0] + perpX * (baseOffset + wander)
+                val y = pos[1] + perpY * (baseOffset + wander)
+
+                val skip = random.nextFloat() < profile.streakDropout
+                if (!skip) {
+                    val variance = 1f - profile.streakAlphaVar * random.nextFloat()
+                    paint.alpha = (baseAlpha * variance * edgeFade).toInt().coerceIn(0, 255)
+                    paint.strokeWidth = streakWidth * (0.7f + 0.6f * random.nextFloat())
+                    if (penDown) canvas.drawLine(lastX, lastY, x, y, paint)
+                }
+                penDown = !skip
+                lastX = x
+                lastY = y
+                dist += step
+            }
+        }
+        paint.alpha = baseAlpha
+    }
+
+    // ── Routines ──────────────────────────────────────────────────────────────
 
     fun drawTaperedStroke(
         canvas: Canvas,
@@ -219,7 +284,7 @@ object BrushRenderUtils {
         val softness = (1f - stroke.hardness).coerceIn(0f, 1f)
         val smoothness = 30
         val origAlpha = paint.alpha
-        val origWidth = stroke.thickness
+        val origWidth = strokeWidthFor(stroke)
 
         val segmentPath = Path()
         pathMeasure.getPosTan(0f, pos, tan)
@@ -248,42 +313,65 @@ object BrushRenderUtils {
         paint.strokeWidth = origWidth
     }
 
+    /** SOLID and TEXTURED. The dash pattern in the paint is what makes them differ. */
     fun drawBrushStroke(canvas: Canvas, stroke: StrokeData, paintAlpha: Int) {
         val paint = makeStrokePaint(stroke, canvas.width, canvas.height).apply {
             style = Paint.Style.STROKE
-            strokeJoin = Paint.Join.ROUND
-            strokeCap = Paint.Cap.ROUND
             isAntiAlias = true
             alpha = paintAlpha
         }
 
         val softness = (1f - stroke.hardness).coerceIn(0f, 1f)
-        if (softness > 0.05f) {
+        // A dash pattern is the brush's grain; re-drawing it segment by segment for a
+        // taper would repeat the pattern from zero on every segment and destroy it.
+        if (softness > 0.05f && paint.pathEffect == null) {
             drawTaperedStroke(canvas, stroke, paint)
         } else {
             stroke.path?.let { canvas.drawPath(it, paint) }
         }
     }
 
+    /**
+     * NIB — an angled flat pen. Width comes from the angle between the direction of
+     * travel and the nib's edge, which is what gives Arabic and Urdu scripts their
+     * thick-thin rhythm. [BrushProfile.nibAngleDeg] sets the cut, [BrushProfile.nibMinRatio]
+     * how thin the thinnest stroke gets.
+     */
     fun drawCalligraphyStroke(canvas: Canvas, stroke: StrokeData, paintAlpha: Int) {
         val path = stroke.path ?: return
         val pathMeasure = PathMeasure(path, false)
         val pathLength = pathMeasure.length
         if (pathLength <= 0f) return
+
+        val profile = BrushProfile.of(stroke.style)
+        val fullWidth = strokeWidthFor(stroke)
+        val minRatio = profile.nibMinRatio.coerceIn(0.02f, 1f)
+        val range = 1f - minRatio
+
         val pos = FloatArray(2)
         val tan = FloatArray(2)
         val paint = makeStrokePaint(stroke, canvas.width, canvas.height).apply {
-            style = Paint.Style.STROKE
-            strokeCap = Paint.Cap.BUTT
+            // The ribbon is built as an outline and filled. Stamping one short line per
+            // sample instead left the stroke combed — the quads never overlapped, so a
+            // Nastaleeq sweep came out as a row of tick marks rather than a solid mark.
+            style = Paint.Style.FILL
             isAntiAlias = true
             alpha = paintAlpha
+            pathEffect = null
         }
 
-        val angle = Math.toRadians(45.0)
+        val angle = Math.toRadians(profile.nibAngleDeg.toDouble())
         val nibCos = cos(angle).toFloat()
         val nibSin = sin(angle).toFloat()
 
-        val steps = 30
+        val steps = (pathLength / (fullWidth * 0.2f).coerceAtLeast(1f))
+            .toInt().coerceIn(32, 1200)
+
+        val leftX = FloatArray(steps + 1)
+        val leftY = FloatArray(steps + 1)
+        val rightX = FloatArray(steps + 1)
+        val rightY = FloatArray(steps + 1)
+
         for (i in 0..steps) {
             val t = i / steps.toFloat()
             pathMeasure.getPosTan(pathLength * t, pos, tan)
@@ -291,20 +379,44 @@ object BrushRenderUtils {
             val nx = if (tanLen > 0) tan[0] / tanLen else 0f
             val ny = if (tanLen > 0) tan[1] / tanLen else 1f
 
-            val dot = kotlin.math.abs(nx * nibCos + ny * nibSin)
-            val nibWidth = (stroke.thickness * (0.2f + 0.8f * dot)).coerceAtLeast(2f)
+            // |cos| between travel and nib: 1 when crossing the nib broadside.
+            val dot = abs(nx * nibCos + ny * nibSin)
+            var nibWidth = fullWidth * (minRatio + range * dot)
+
+            if (profile.nibTapers) {
+                val endTaper = if (t > 0.82f) ((1f - t) / 0.18f).pow(0.6f) else 1f
+                val startTaper = if (t < 0.08f) (t / 0.08f).pow(0.6f) else 1f
+                nibWidth *= (startTaper * endTaper).coerceIn(0.15f, 1f)
+            }
+            nibWidth = nibWidth.coerceAtLeast(1f)
 
             val perpX = -nibSin * nibWidth * 0.5f
             val perpY = nibCos * nibWidth * 0.5f
-            canvas.drawLine(pos[0] - perpX, pos[1] - perpY, pos[0] + perpX, pos[1] + perpY, paint)
+            leftX[i] = pos[0] - perpX
+            leftY[i] = pos[1] - perpY
+            rightX[i] = pos[0] + perpX
+            rightY[i] = pos[1] + perpY
         }
+
+        val ribbon = Path()
+        ribbon.moveTo(leftX[0], leftY[0])
+        for (i in 1..steps) ribbon.lineTo(leftX[i], leftY[i])
+        for (i in steps downTo 0) ribbon.lineTo(rightX[i], rightY[i])
+        ribbon.close()
+        canvas.drawPath(ribbon, paint)
     }
 
+    /** BRISTLE — several thin parallel lines, optionally wobbling apart. */
     fun drawFlatBrushStroke(canvas: Canvas, stroke: StrokeData, paintAlpha: Int) {
         val path = stroke.path ?: return
         val pathMeasure = PathMeasure(path, false)
         val pathLength = pathMeasure.length
         if (pathLength <= 0f) return
+
+        val profile = BrushProfile.of(stroke.style)
+        val fullWidth = strokeWidthFor(stroke)
+        val bristles = profile.bristles.coerceAtLeast(1)
+
         val pos = FloatArray(2)
         val tan = FloatArray(2)
         val paint = makeStrokePaint(stroke, canvas.width, canvas.height).apply {
@@ -314,151 +426,130 @@ object BrushRenderUtils {
             alpha = paintAlpha
         }
 
-        val bristles = 5
+        val random = seededRandom(stroke)
         for (b in 0 until bristles) {
-            val offsetFactor = (b - bristles / 2f) / (bristles / 2f)
-            val bristleOffset = offsetFactor * (stroke.thickness * 0.45f)
+            val offsetFactor = (b - bristles / 2f) / (bristles / 2f).coerceAtLeast(0.5f)
+            val bristleOffset = offsetFactor * (fullWidth * 0.45f)
             val bristlePaint = Paint(paint).apply {
-                strokeWidth = (stroke.thickness / bristles).coerceAtLeast(1.5f)
+                strokeWidth = (fullWidth / bristles).coerceAtLeast(1.2f)
             }
+            val wobble = profile.bristleJitter * fullWidth
             val bristlePath = Path()
-            val steps = 24
+            val steps = 32
             for (i in 0..steps) {
                 val t = i / steps.toFloat()
                 pathMeasure.getPosTan(pathLength * t, pos, tan)
                 val len = hypot(tan[0], tan[1])
                 val perpX = if (len > 0) -tan[1] / len else 0f
                 val perpY = if (len > 0) tan[0] / len else 1f
-                val px = pos[0] + perpX * bristleOffset
-                val py = pos[1] + perpY * bristleOffset
+                val jitter = if (wobble > 0f) (random.nextFloat() - 0.5f) * wobble else 0f
+                val px = pos[0] + perpX * (bristleOffset + jitter)
+                val py = pos[1] + perpY * (bristleOffset + jitter)
                 if (i == 0) bristlePath.moveTo(px, py) else bristlePath.lineTo(px, py)
             }
             canvas.drawPath(bristlePath, bristlePaint)
         }
     }
 
+    /** SCATTER — dots thrown along the path, over an optional solid core. */
     fun drawSplatterStroke(canvas: Canvas, stroke: StrokeData, paintAlpha: Int) {
-        val pathMeasure = PathMeasure(stroke.path, false)
+        val path = stroke.path ?: return
+        val profile = BrushProfile.of(stroke.style)
+        val fullWidth = strokeWidthFor(stroke)
+
+        val pathMeasure = PathMeasure(path, false)
         val pathLength = pathMeasure.length
+        if (pathLength <= 0f) return
+
         val pos = FloatArray(2)
         val tan = FloatArray(2)
 
         val mainPaint = makeStrokePaint(stroke, canvas.width, canvas.height).apply {
             alpha = paintAlpha
-            strokeWidth = stroke.thickness * 0.7f
-        }
-        stroke.path?.let { canvas.drawPath(it, mainPaint) }
-
-        val dotPaint = Paint(mainPaint).apply {
-            style = Paint.Style.FILL
+            pathEffect = null
         }
 
-        val random = Random(99)
+        if (profile.coreWidth > 0f) {
+            mainPaint.strokeWidth = fullWidth * profile.coreWidth
+            canvas.drawPath(path, mainPaint)
+        }
+
+        val dotPaint = Paint(mainPaint).apply { style = Paint.Style.FILL }
+
+        val random = seededRandom(stroke)
+        val step = (fullWidth * 0.5f).coerceAtLeast(3f)
         var dist = 0f
         while (dist < pathLength) {
             pathMeasure.getPosTan(dist, pos, tan)
-            val count = random.nextInt(4) + 1
-            repeat(count) {
-                val radius = (random.nextFloat() * stroke.thickness * 0.35f).coerceAtLeast(1.5f)
-                val spread = (random.nextFloat() - 0.5f) * stroke.thickness * 2.2f
-                val len = hypot(tan[0], tan[1])
-                val perpX = if (len > 0) -tan[1] / len else 0f
-                val perpY = if (len > 0) tan[0] / len else 1f
+            val len = hypot(tan[0], tan[1])
+            val perpX = if (len > 0) -tan[1] / len else 0f
+            val perpY = if (len > 0) tan[0] / len else 1f
+            repeat(profile.density) {
+                val radius = (random.nextFloat() * fullWidth * profile.dotScale).coerceAtLeast(0.8f)
+                val spread = (random.nextFloat() - 0.5f) * fullWidth * profile.spread
+                dotPaint.alpha = (paintAlpha * (0.45f + 0.55f * random.nextFloat()))
+                    .toInt().coerceIn(0, 255)
                 canvas.drawCircle(pos[0] + perpX * spread, pos[1] + perpY * spread, radius, dotPaint)
             }
-            dist += stroke.thickness * 0.6f + 8f
+            dist += step
         }
     }
 
-    fun drawGlitterStroke(canvas: Canvas, stroke: StrokeData, paintAlpha: Int) {
-        val pathMeasure = PathMeasure(stroke.path, false)
-        val pathLength = pathMeasure.length
-        val pos = FloatArray(2)
-        val tan = FloatArray(2)
+    /** Kept for saved projects that still reference the glitter style. */
+    fun drawGlitterStroke(canvas: Canvas, stroke: StrokeData, paintAlpha: Int) =
+        drawSplatterStroke(canvas, stroke, paintAlpha)
 
-        val basePaint = makeStrokePaint(stroke, canvas.width, canvas.height).apply {
-            alpha = (paintAlpha * 0.6f).toInt()
-            strokeWidth = stroke.thickness * 0.5f
-        }
-        stroke.path?.let { canvas.drawPath(it, basePaint) }
-
-        val glitterPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = stroke.color
-            style = Paint.Style.FILL
-            alpha = paintAlpha
-        }
-
-        val random = Random(123)
-        var dist = 0f
-        while (dist < pathLength) {
-            pathMeasure.getPosTan(dist, pos, tan)
-            repeat(6) {
-                val r = (random.nextFloat() * stroke.thickness * 0.25f).coerceAtLeast(1.2f)
-                val spread = (random.nextFloat() - 0.5f) * stroke.thickness * 1.6f
-                val len = hypot(tan[0], tan[1])
-                val perpX = if (len > 0) -tan[1] / len else 0f
-                val perpY = if (len > 0) tan[0] / len else 1f
-                glitterPaint.alpha = (paintAlpha * (0.5f + 0.5f * random.nextFloat())).toInt()
-                canvas.drawCircle(pos[0] + perpX * spread, pos[1] + perpY * spread, r, glitterPaint)
-            }
-            dist += stroke.thickness * 0.4f + 6f
-        }
-    }
-
+    /** WET — a wide translucent wash with a denser core over it. */
     fun drawWatercolorStroke(canvas: Canvas, stroke: StrokeData, paintAlpha: Int) {
+        val path = stroke.path ?: return
+        val profile = BrushProfile.of(stroke.style)
+        val fullWidth = strokeWidthFor(stroke)
+
         val paint = makeStrokePaint(stroke, canvas.width, canvas.height).apply {
             style = Paint.Style.STROKE
             strokeCap = Paint.Cap.ROUND
             strokeJoin = Paint.Join.ROUND
             isAntiAlias = true
+            pathEffect = null
         }
 
-        // Layer 1: Wide soft transparent wash
-        paint.strokeWidth = stroke.thickness * 1.3f
-        paint.alpha = (paintAlpha * 0.35f).toInt()
-        stroke.path?.let { canvas.drawPath(it, paint) }
+        paint.strokeWidth = fullWidth * profile.washWidth
+        paint.alpha = (paintAlpha * profile.washAlpha).toInt().coerceIn(0, 255)
+        canvas.drawPath(path, paint)
 
-        // Layer 2: Core stroke
-        paint.strokeWidth = stroke.thickness * 0.9f
-        paint.alpha = (paintAlpha * 0.65f).toInt()
-        stroke.path?.let { canvas.drawPath(it, paint) }
+        paint.strokeWidth = fullWidth * 0.9f
+        paint.alpha = (paintAlpha * profile.coreAlpha).toInt().coerceIn(0, 255)
+        canvas.drawPath(path, paint)
     }
 
-    fun drawStrokePreview(
-        canvas: Canvas,
-        stroke: StrokeData,
-        paintAlpha: Int,
-        width: Int,
-        height: Int,
-        makePaint: (StrokeData, Int, Int) -> Paint,
-        drawBrush: (Canvas, StrokeData, Int) -> Unit,
-        drawPen: (Canvas, StrokeData, Int) -> Unit
-    ) {
-        when (stroke.style) {
-            BrushStyle.ROUND_BRUSH, BrushStyle.BRUSH -> drawBrush(canvas, stroke, paintAlpha)
-            BrushStyle.INK_PEN, BrushStyle.PEN, BrushStyle.BRUSH_PEN -> drawPen(canvas, stroke, paintAlpha)
-            BrushStyle.CALLIGRAPHY, BrushStyle.RIBBON -> drawCalligraphyStroke(canvas, stroke, paintAlpha)
-            BrushStyle.FLAT_BRUSH -> drawFlatBrushStroke(canvas, stroke, paintAlpha)
-            BrushStyle.SPLATTER, BrushStyle.SPRAY -> drawSplatterStroke(canvas, stroke, paintAlpha)
-            BrushStyle.GLITTER -> drawGlitterStroke(canvas, stroke, paintAlpha)
-            BrushStyle.WATERCOLOR -> drawWatercolorStroke(canvas, stroke, paintAlpha)
-            BrushStyle.HIGHLIGHTER -> {
-                val paint = makePaint(stroke, width, height)
-                paint.alpha = paintAlpha
-                val offset = stroke.thickness * 0.3f
-                val path = Path(stroke.path)
-                val m = Matrix()
-                m.postTranslate(0f, offset)
-                path.transform(m)
-                canvas.drawPath(path, paint)
-            }
+    /** GLOW — a blurred halo with a bright core sitting inside it. */
+    fun drawGlowStroke(canvas: Canvas, stroke: StrokeData, paintAlpha: Int) {
+        val path = stroke.path ?: return
+        val profile = BrushProfile.of(stroke.style)
+        val fullWidth = strokeWidthFor(stroke)
 
-            else -> {
-                val paint = makePaint(stroke, width, height)
-                paint.alpha = paintAlpha
-                stroke.path?.let { canvas.drawPath(it, paint) }
-            }
+        val halo = makeStrokePaint(stroke, canvas.width, canvas.height).apply {
+            style = Paint.Style.STROKE
+            strokeCap = Paint.Cap.ROUND
+            strokeJoin = Paint.Join.ROUND
+            pathEffect = null
+            strokeWidth = fullWidth
+            alpha = (paintAlpha * 0.55f).toInt().coerceIn(0, 255)
+            maskFilter = BlurMaskFilter(
+                (fullWidth * profile.glowRadius).coerceAtLeast(2f), BlurMaskFilter.Blur.NORMAL
+            )
         }
+        canvas.drawPath(path, halo)
+
+        // The core is what makes it read as light rather than as a smudge: a near-white
+        // centre line inside the halo, drawn at full alpha.
+        val core = Paint(halo).apply {
+            maskFilter = null
+            shader = halo.shader
+            strokeWidth = (fullWidth * profile.glowCore).coerceAtLeast(1f)
+            alpha = paintAlpha
+        }
+        canvas.drawPath(path, core)
     }
 
     fun drawTaperedPenStroke(canvas: Canvas, stroke: StrokeData, paintAlpha: Int) {
@@ -470,17 +561,19 @@ object BrushRenderUtils {
         val tangent = FloatArray(2)
         val prevPos = FloatArray(2)
 
+        val fullWidth = strokeWidthFor(stroke)
         val paint = makeStrokePaint(stroke, canvas.width, canvas.height).apply {
             style = Paint.Style.STROKE
             strokeCap = Paint.Cap.ROUND
             strokeJoin = Paint.Join.ROUND
             isAntiAlias = true
             alpha = paintAlpha
+            pathEffect = null
         }
 
         val segmentPath = Path()
         val samples = 30
-        var prevWidth = stroke.thickness
+        var prevWidth = fullWidth
 
         for (i in 0..samples) {
             val t = i / samples.toFloat()
@@ -500,7 +593,7 @@ object BrushRenderUtils {
             val pressureFactor = (1f - (speed / 40f)).coerceIn(0.25f, 1f)
             val taperFactor = (1f - 0.5f * t).coerceAtLeast(0.3f)
 
-            val width = stroke.thickness * taperFactor * pressureFactor
+            val width = fullWidth * taperFactor * pressureFactor
             val smoothWidth = (prevWidth * 0.7f + width * 0.3f)
             paint.strokeWidth = smoothWidth
 
@@ -515,32 +608,19 @@ object BrushRenderUtils {
         }
     }
 
-    fun drawSingleStroke(
-        canvas: Canvas,
-        stroke: StrokeData,
-        paintAlpha: Int
-    ) {
-        val path = stroke.path ?: return
-        val finalAlpha = (paintAlpha * stroke.opacity.coerceIn(0f, 1f)).toInt().coerceIn(0, 255)
-        when (stroke.style) {
-            BrushStyle.ROUND_BRUSH, BrushStyle.BRUSH -> drawBrushStroke(canvas, stroke, finalAlpha)
-            BrushStyle.INK_PEN, BrushStyle.PEN, BrushStyle.BRUSH_PEN -> drawTaperedPenStroke(canvas, stroke, finalAlpha)
-            BrushStyle.CALLIGRAPHY, BrushStyle.RIBBON -> drawCalligraphyStroke(canvas, stroke, finalAlpha)
-            BrushStyle.FLAT_BRUSH -> drawFlatBrushStroke(canvas, stroke, finalAlpha)
-            BrushStyle.SPLATTER, BrushStyle.SPRAY -> drawSplatterStroke(canvas, stroke, finalAlpha)
-            BrushStyle.GLITTER -> drawGlitterStroke(canvas, stroke, finalAlpha)
-            BrushStyle.WATERCOLOR -> drawWatercolorStroke(canvas, stroke, finalAlpha)
-            else -> {
-                val softness = (1f - stroke.hardness).coerceIn(0f, 1f)
-                val paint = makeStrokePaint(stroke, canvas.width, canvas.height).apply {
-                    alpha = finalAlpha
-                }
-                if (softness > 0.05f) {
-                    drawTaperedStroke(canvas, stroke, paint)
-                } else {
-                    canvas.drawPath(path, paint)
-                }
-            }
-        }
+    // ── Shared helpers ────────────────────────────────────────────────────────
+
+    /**
+     * A generator seeded from the stroke itself. Scatter and sprite brushes are re-run on
+     * every frame, so a fresh [Random] would make the marks crawl; deriving the seed from
+     * the geometry keeps each stroke's speckle fixed while still differing between strokes.
+     */
+    internal fun seededRandom(stroke: StrokeData): Random {
+        val path = stroke.path
+        val length = if (path != null) PathMeasure(path, false).length else 0f
+        val seed = (length * 31f).toLong() xor
+                (stroke.thickness * 7f).toLong() xor
+                stroke.style.ordinal.toLong() * 2654435761L
+        return Random(seed)
     }
 }

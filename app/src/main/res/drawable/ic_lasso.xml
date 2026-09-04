@@ -3,20 +3,38 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <!-- Main Lasso Loop -->
+
+    <!--
+        A lasso reads through three things the old icon was missing: a *closed* loop, a
+        cinch knot where the rope gathers, and a short taut tail below it. The previous
+        drawing was two open arcs at the same weight, which came out as coiled rope.
+
+        The loop is a wide ellipse — a thrown lasso is seen in perspective, not head-on —
+        pinched at the bottom where the knot sits.
+    -->
     <path
         android:strokeColor="@color/black"
-        android:strokeWidth="1.3"
+        android:strokeWidth="1.6"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
         android:fillColor="#00000000"
-        android:pathData="M4,13.5 C3.3,9.7 5.4,6.1 9,4.4 C12.6,2.7 16.8,3.4 19.7,6 C22.6,8.6 23.4,12.6 21.7,16 C20,19.4 16.2,21.3 12.2,20.8 C10.2,20.6 8.4,19.7 7,18.3" />
-    <!-- Lasso Knot -->
+        android:pathData="M12,3.4 C16.8,3.4 20.6,6.2 20.6,9.7 C20.6,13.2 16.8,16 12,16 C7.2,16 3.4,13.2 3.4,9.7 C3.4,6.2 7.2,3.4 12,3.4 Z" />
+
+    <!-- Cinch knot: a small ring the tail runs through. -->
     <path
         android:strokeColor="@color/black"
-        android:strokeWidth="1.3"
+        android:strokeWidth="1.6"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
         android:fillColor="#00000000"
-        android:pathData="M5,17 C3.5,18.5 3.5,20.5 5,21.5 C6.5,22.5 8.5,22.5 10,21 L12,19" />
+        android:pathData="M10.4,16.1 C10.4,15.2 11.1,14.6 12,14.6 C12.9,14.6 13.6,15.2 13.6,16.1 C13.6,17 12.9,17.6 12,17.6 C11.1,17.6 10.4,17 10.4,16.1 Z" />
+
+    <!-- Tail: short, straight and hanging, so the knot reads as the gather point. -->
+    <path
+        android:strokeColor="@color/black"
+        android:strokeWidth="1.6"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M12,17.6 L12,21.2" />
+
 </vector>

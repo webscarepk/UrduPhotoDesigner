@@ -2,22 +2,44 @@
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/brushStylesFragment"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".ui.editor.panels.draw.brush.BrushStyleFragment">
 
+    <!-- One grid. The shelf being shown is chosen in the panel's tab row, not here —
+         a side rail would have eaten a third of an already short panel. -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/brushStylesRV"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
         android:clipToPadding="false"
         android:orientation="horizontal"
         android:paddingHorizontal="10dp"
         android:paddingTop="4dp"
         android:paddingBottom="4dp"
         app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
-        app:spanCount="2"
-        tools:itemCount="15"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:spanCount="3"
+        tools:itemCount="12"
         tools:listitem="@layout/layout_brush_style_item" />
+
+    <TextView
+        android:id="@+id/emptyLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="@font/regular"
+        android:textColor="@color/gray"
+        android:textSize="13sp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:text="No brushes match “sumi”"
+        tools:visibility="visible" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

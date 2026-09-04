@@ -86,7 +86,10 @@ class OverlayColorListFragment : Fragment() {
                         .commit()
                 },
                 {
-                    viewModel.enableFeature("Overlay")
+                    // Deliberately does NOT enable the overlay here. enableFeature()
+                    // stamps the #FF746C preset onto a transparent overlay, which tinted
+                    // the image the moment the dropper was armed — before the user had
+                    // sampled anything. finishPicking() turns it on once a colour lands.
                     viewModel.startPicking(PickerTarget.EYE_DROPPER_OVERLAY)
                 })
         binding.colors.apply {

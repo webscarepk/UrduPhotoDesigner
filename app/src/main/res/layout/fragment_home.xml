@@ -96,27 +96,13 @@
 
         <EditText
             android:id="@+id/searchBar"
+            style="@style/Widget.UrduCanvas.SearchBar"
             android:layout_width="0dp"
-            android:layout_height="40dp"
-            android:maxLines="1"
-            android:singleLine="true"
-            android:inputType="text"
-            android:imeOptions="actionSearch"
-            android:background="@drawable/button_bg_stroke_fill"
-            android:fontFamily="@font/regular"
-            android:drawableEnd="@drawable/ic_search"
-            android:drawablePadding="12dp"
-            android:paddingHorizontal="12dp"
-            android:paddingVertical="10dp"
-            android:textSize="12sp"
             android:layout_marginHorizontal="20dp"
             android:hint="@string/search_templates_fonts_and_assets"
-            android:translationZ="1dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/subscriptions"
-            android:textColorHint="@color/gray"
-            android:textColor="@color/black"
             android:layout_marginTop="12dp"/>
 
         <LinearLayout
