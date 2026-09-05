@@ -93,7 +93,6 @@ class Material3DFragment : Fragment() {
     }
 
     private fun initHeaderButtons() {
-        binding.btnDone.addPressEffect { viewModel.setPagingLocked(false) }
         binding.btnSettings.addPressEffect { showScreen(Screen.PROPERTIES) }
         binding.btnPropertiesDone.addPressEffect { showScreen(Screen.MAIN) }
     }

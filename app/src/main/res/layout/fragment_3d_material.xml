@@ -18,30 +18,15 @@
         android:background="@color/white"
         >
 
-        <!-- Smaller than the done glyph: settings is a way *deeper in*, done is the way
-             out, and the panel reads better when the exit is the larger of the two. -->
+        <!-- The only glyph on this row. There is no tick here: this panel has nothing to
+             confirm, and the done tick belongs to the settings screen it opens. -->
         <ImageView
             android:id="@+id/btnSettings"
-            android:layout_width="22dp"
-            android:layout_height="22dp"
-            android:layout_marginEnd="6dp"
-            android:contentDescription="@null"
-            android:padding="2dp"
-            android:src="@drawable/ic_setting"
-            app:layout_constraintBottom_toBottomOf="@id/btnDone"
-            app:layout_constraintEnd_toStartOf="@id/btnDone"
-            app:layout_constraintTop_toTopOf="@id/btnDone"
-            app:tint="@color/black" />
-
-        <!-- Bare glyph, no ring: the tick is a quiet way back, not the loudest thing on
-             the screen, and the circular stroke made it read as a button among icons. -->
-        <ImageView
-            android:id="@+id/btnDone"
             android:layout_width="26dp"
             android:layout_height="26dp"
             android:contentDescription="@null"
-            android:padding="1dp"
-            android:src="@drawable/ic_done"
+            android:padding="3dp"
+            android:src="@drawable/ic_setting"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:tint="@color/black" />
@@ -58,10 +43,10 @@
             android:background="@drawable/button_bg_small"
             android:backgroundTint="@color/contrast"
             android:padding="2dp"
-            app:layout_constraintBottom_toBottomOf="@id/btnDone"
+            app:layout_constraintBottom_toBottomOf="@id/btnSettings"
             app:layout_constraintEnd_toStartOf="@id/btnSettings"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="@id/btnDone">
+            app:layout_constraintTop_toTopOf="@id/btnSettings">
 
             <TextView
                 android:id="@+id/tabFront"
@@ -250,13 +235,14 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="@id/btnPropertiesDone" />
 
+        <!-- Bare glyph, no ring: it matches the settings icon it swaps places with. -->
         <ImageView
             android:id="@+id/btnPropertiesDone"
-            android:layout_width="28dp"
-            android:layout_height="28dp"
+            android:layout_width="26dp"
+            android:layout_height="26dp"
             android:contentDescription="@null"
             android:padding="3dp"
-            android:src="@drawable/ic_done_stroke"
+            android:src="@drawable/ic_done"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:tint="@color/black" />
