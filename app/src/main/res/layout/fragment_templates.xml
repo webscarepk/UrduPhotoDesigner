@@ -85,45 +85,19 @@
         android:translationZ="1dp"
         android:background="@drawable/button_bg_stroke_fill"/>
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        app:layout_constraintTop_toBottomOf="@id/searchBar"
-        android:layout_marginTop="5dp"
-        app:layout_constraintStart_toEndOf="@id/startGuide"
-        android:text="@string/browse_by_size"
-        android:fontFamily="@font/bold"
-        android:textSize="15sp"
-        android:textColor="@color/black"
-        android:id="@+id/sizeTitle"/>
-
-    <androidx.recyclerview.widget.RecyclerView
-        android:layout_marginTop="6dp"
-        android:id="@+id/sizesRV"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:paddingHorizontal="@dimen/_12sdp"
-        android:clipToPadding="false"
-        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-        android:orientation="horizontal"
-        tools:listitem="@layout/layout_sizes_filter_item"
-        app:layout_constraintTop_toBottomOf="@id/sizeTitle"/>
-
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/categoriesRV"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:clipToPadding="false"
         android:orientation="vertical"
-        android:paddingTop="20dp"
+        android:paddingTop="12dp"
         android:paddingBottom="100dp"
         app:layoutManager="com.webscare.urducanvas.common.views.SafeLinearLayoutManager"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/sizesRV"
+        app:layout_constraintTop_toBottomOf="@id/searchBar"
         tools:listitem="@layout/layout_category_row" />
 
     <!-- Loading skeleton (shown when initial templates are loading + nothing cached) -->
@@ -134,7 +108,7 @@
         android:layout_height="0dp"
         android:visibility="gone"
         android:translationZ="11dp"
-        app:layout_constraintTop_toBottomOf="@id/sizesRV"
+        app:layout_constraintTop_toBottomOf="@id/searchBar"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
@@ -147,7 +121,7 @@
         android:layout_height="0dp"
         android:visibility="gone"
         android:translationZ="11dp"
-        app:layout_constraintTop_toBottomOf="@id/sizesRV"
+        app:layout_constraintTop_toBottomOf="@id/searchBar"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
@@ -162,29 +136,4 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
 
-    <LinearLayout
-        android:id="@+id/categoryChips"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:visibility="gone"
-        android:background="@color/contrast"
-        android:paddingHorizontal="23dp"
-        android:paddingVertical="16dp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/searchBar">
-
-        <!-- Category chips -->
-        <com.google.android.material.chip.ChipGroup
-            android:id="@+id/categoryChipGroup"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingHorizontal="16dp"
-            app:singleLine="false"
-            app:singleSelection="true"
-            app:chipSpacingHorizontal="8dp"
-            app:chipSpacingVertical="8dp"/>
-
-    </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

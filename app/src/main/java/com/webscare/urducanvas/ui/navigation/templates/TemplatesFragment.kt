@@ -48,7 +48,7 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
 
     private var currentCategory: String? = null
     private lateinit var subcategoryAdapter: TemplateCategoriesAdapter
-    private lateinit var canvasSizeAdapter: CanvasSizeAdapter
+    private var subcategoriesList: List<String> = emptyList()
     private lateinit var templatesAdapter: TemplatesAdapter
     private lateinit var wrappedSubcategoryAdapter: RecyclerView.Adapter<*>
     private lateinit var wrappedTemplatesAdapter: RecyclerView.Adapter<*>
@@ -64,9 +64,6 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
     private var activeSize: CanvasSize? = null
     private var activePrice: String = "All"
     private var trendName: String? = null
-    private var filterPanelVisible = false
-    private var suppressChipClicks = false
-    private var suppressPriceChipClicks = false
 
     private enum class ListMode { SECTIONS, GRID }
     private var listMode = ListMode.SECTIONS
@@ -105,45 +102,12 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
         loadingDialog?.dismiss(); loadingDialog = null; dialogBinding = null
     }
 
-    // ─── Price Chips (static — set up once) ──────────────────────────────────
 
-//    private fun setupPriceChips() {
-//        val cg = binding.priceChipGroup
-//        cg.removeAllViews()
-//        listOf("All", "Free", "Premium").forEach { label ->
-//            val chip = layoutInflater.inflate(R.layout.chip_filter_item, cg, false) as Chip
-//            chip.id = View.generateViewId()
-//            chip.text = label
-//            chip.isCheckable = true
-//            chip.isChecked = label.equals(activePrice, true)
-//            cg.addView(chip)
-//
-//            chip.addPressEffect {
-//                if (suppressPriceChipClicks) return@addPressEffect
-//                val clicked = chip.text.toString()
-//                if (chip.isChecked && !clicked.equals("All", true)) {
-//                    suppressPriceChipClicks = true
-//                    cg.clearCheck()
-//                    findChipByText(cg, "All")?.isChecked = true
-//                    suppressPriceChipClicks = false
-//                    activePrice = "All"
-//                } else {
-//                    suppressPriceChipClicks = true
-//                    cg.clearCheck(); chip.isChecked = true
-//                    suppressPriceChipClicks = false
-//                    activePrice = clicked
-//                }
-//                applyFilters()
-//                if (filterPanelVisible) toggleFilterPanel()
-//            }
-//        }
-//    }
 
     // ─── Setup ───────────────────────────────────────────────────────────────
 
     private fun setEvents() {
         setupHeaderUi()
-        setupSizeAdapter()
         setupSubcategoryAdapter()
         setupTemplatesAdapter()
         switchToSections()
@@ -157,7 +121,25 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
         }
 
         binding.back.addPressEffect { findNavController().navigateUp() }
-        binding.filters.addPressEffect { toggleFilterPanel() }
+        binding.filters.addPressEffect {
+            val sheet = FilterBottomSheetFragment.newInstance(
+                chipTitle = "Subcategories",
+                chips = subcategoriesList,
+                selectedChip = activeSubcategory,
+                selectedSizeName = activeSize?.name
+            )
+            sheet.onFilterApplied = { size, subcat ->
+                activeSize = size
+                activeSubcategory = subcat
+                applyFilters()
+            }
+            sheet.onFilterCleared = {
+                activeSize = null
+                activeSubcategory = "All"
+                applyFilters()
+            }
+            sheet.show(childFragmentManager, FilterBottomSheetFragment.TAG)
+        }
         binding.searchBar.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH) {
                 activeQuery = binding.searchBar.text.toString()
@@ -176,15 +158,6 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
                 applyFilters()
             }
         }
-    }
-
-    private fun setupSizeAdapter() {
-        canvasSizeAdapter = com.webscare.urducanvas.ui.creation.CanvasSizeAdapter(emptyList(), onClick = { selected ->
-            activeSize = if (activeSize?.name == selected.name) null else selected
-            canvasSizeAdapter.selectedSizeName = activeSize?.name ?: ""
-            applyFilters()
-        }, false)
-        binding.sizesRV.adapter = canvasSizeAdapter
     }
 
     private fun setupSubcategoryAdapter() {
@@ -282,100 +255,10 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
     // ─── Subcategory Chips ────────────────────────────────────────────────────
 
     private fun buildSubcategoryChips(templates: List<TemplateEntity>) {
-        val subcats = buildList {
+        subcategoriesList = buildList {
             add("All")
             addAll(templates.mapNotNull { it.subcategory?.trim()?.takeIf { s -> s.isNotEmpty() } }.distinct().sorted())
         }
-        renderSubcategoryChips(subcats)
-    }
-
-    private fun renderSubcategoryChips(subcats: List<String>) {
-        // categoryChipGroup is the inner ChipGroup inside the LinearLayout panel
-        val cg = binding.categoryChipGroup
-        cg.isSingleSelection = true; cg.isSelectionRequired = false
-        cg.removeAllViews()
-
-        subcats.forEach { label ->
-            val chip = layoutInflater.inflate(R.layout.chip_filter_item, cg, false) as Chip
-            chip.id = View.generateViewId(); chip.text = label
-            chip.isCheckable = true; chip.isChecked = label.equals(activeSubcategory, true)
-            cg.addView(chip)
-
-            chip.addPressEffect {
-                if (suppressChipClicks) return@addPressEffect
-                val clickedText = chip.text.toString()
-                if (chip.isChecked && !clickedText.equals("All", true)) {
-                    findChipByText(cg, "All")?.let {
-                        suppressChipClicks = true; cg.clearCheck(); it.isChecked = true
-                        suppressChipClicks = false; activeSubcategory = "All"
-                    }
-                } else {
-                    suppressChipClicks = true; cg.clearCheck(); chip.isChecked = true
-                    suppressChipClicks = false; activeSubcategory = clickedText
-                }
-                applyFilters()
-                if (filterPanelVisible) toggleFilterPanel()
-            }
-        }
-    }
-
-    private fun findChipByText(group: ViewGroup, text: String): Chip? =
-        (0 until group.childCount).mapNotNull { group.getChildAt(it) as? Chip }
-            .firstOrNull { it.text.toString().equals(text, true) }
-
-    // ─── Filter Panel ─────────────────────────────────────────────────────────
-
-    private fun toggleFilterPanel() {
-        val panel   = binding.categoryChips
-        val bar     = binding.searchBar
-        val overlay = binding.topFadeOverlay
-        val root    = binding.root
-
-        if (!filterPanelVisible) {
-            // searchBar and its sibling filters button must sit ABOVE the panel
-            bar.bringToFront()
-            binding.filters.bringToFront()
-            bar.translationZ     = resources.getDimension(com.intuit.sdp.R.dimen._2sdp)
-            binding.filters.translationZ = resources.getDimension(com.intuit.sdp.R.dimen._2sdp)
-            // gradient overlay must NOT cover the chips panel
-            overlay.translationZ = 0f
-            panel.translationZ   = 1f
-
-            root.clipChildren  = false
-            root.clipToPadding = false
-
-            panel.isVisible = true
-            panel.doOnPreDraw {
-                // panel.top is its natural Y position (below searchBar).
-                // We want the panel to start with its BOTTOM edge sitting exactly
-                // at bar.bottom — i.e. fully tucked behind the search bar.
-                // Offset needed = -(panel.top - bar.bottom + panel.height)
-                val startY = -(panel.top - bar.bottom + panel.height).toFloat()
-                panel.translationY = startY
-                panel.animate()
-                    .translationY(0f)
-                    .setDuration(300)
-                    .setInterpolator(android.view.animation.DecelerateInterpolator(2.2f))
-                    .start()
-            }
-        } else {
-            panel.doOnPreDraw {
-                val endY = -(panel.top - bar.bottom + panel.height).toFloat()
-                panel.animate()
-                    .translationY(endY)
-                    .setDuration(240)
-                    .setInterpolator(android.view.animation.AccelerateInterpolator(2f))
-                    .withEndAction {
-                        panel.isGone      = true
-                        panel.translationY = 0f
-                        overlay.translationZ = resources.getDimension(com.intuit.sdp.R.dimen._2sdp)
-                        root.clipChildren  = true
-                        root.clipToPadding = true
-                    }
-                    .start()
-            }
-        }
-        filterPanelVisible = !filterPanelVisible
     }
 
     // ─── Filter Logic ─────────────────────────────────────────────────────────
@@ -441,15 +324,6 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
             }
         }
 
-        viewLifecycleOwner.lifecycleScope.launch {
-            mainViewModel.localCanvasSizes.collect { entities ->
-                if (entities.isEmpty()) return@collect
-                val sizes = entities.map {
-                    CanvasSize(id = it.id, name = it.name, width = it.width, height = it.height)
-                }
-                canvasSizeAdapter.submitList(sizes)
-            }
-        }
 
         viewLifecycleOwner.lifecycleScope.launch {
             mainViewModel.localTemplates.collect { allTemplates ->
@@ -566,8 +440,6 @@ class TemplatesFragment : androidx.fragment.app.Fragment() {
                         activePrice = "All"
                         activeSubcategory = "All"
                         binding.searchBar.setText("")
-                        canvasSizeAdapter.selectedSizeName = ""
-                        canvasSizeAdapter.notifyDataSetChanged()
                         applyFilters()
                     }
                 }

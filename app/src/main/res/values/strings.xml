@@ -234,6 +234,8 @@
     <string name="popular_fonts">Popular Fonts</string>
     <string name="dummyText">ایڈٹ کرنے کیلئے دو بار ٹیپ کریں</string>
     <string name="filters">Filters</string>
+    <string name="apply_filters">Apply Filters</string>
+    <string name="filter_templates">Filter Templates</string>
     <string name="popular_templates">Popular Templates</string>
     <string name="urdu_canvas_pro">Urdu Canvas Pro</string>
     <string name="unlock_all_features_and_assets">Unlock all features and assets</string>
@@ -532,4 +534,10 @@
     <string name="dark_mode">Dark Mode</string>
     <string name="styles">Styles</string>
     <string name="presets">Presets</string>
+
+    <!-- Home -->
+    <string name="home_tagline">Create. Design. In Urdu.</string>
+    <string name="start_with_an_image">Start with an image</string>
+    <string name="create_blank_artboard">Create blank artboard</string>
+    <string name="all_templates">All Templates</string>
 </resources>
