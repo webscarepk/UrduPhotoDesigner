@@ -19,15 +19,10 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.isVisible
-import androidx.dynamicanimation.animation.DynamicAnimation
-import androidx.dynamicanimation.animation.SpringAnimation
-import androidx.dynamicanimation.animation.SpringForce
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
 import androidx.navigation.NavOptions
 import androidx.navigation.fragment.NavHostFragment
-import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.webscare.ads.WebsCareAds
 import com.webscare.urducanvas.common.canvas.CanvasViewModel
 import com.webscare.urducanvas.common.canvas.model.CanvasSize
@@ -143,9 +138,11 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, insets ->
-            val statusBarHeight = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top
+            statusBarInsetPx = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top
             val navBarHeight = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
-            view.setPadding(0, statusBarHeight, 0, navBarHeight)
+            // Home paints its own header behind the status bar; everyone else gets the inset.
+            view.setPadding(0, if (drawsUnderStatusBar) 0 else statusBarInsetPx, 0, navBarHeight)
+            ViewCompat.dispatchApplyWindowInsets(binding.navHostMain, insets)
             insets
         }
 
@@ -159,24 +156,37 @@ class MainActivity : AppCompatActivity() {
             supportFragmentManager.findFragmentById(R.id.nav_host_main) as NavHostFragment
         _navController = navHostFragment.navController
 
-        setupBottomNav()
+        setupChrome()
         handleIncomingIntent(intent)
     }
 
     // ──────────────────────────────────────────────────────────
-    // Bottom Nav setup (cradle + spring indicator)
+    // Top-level chrome (FAB + status bar + back handling)
     // ──────────────────────────────────────────────────────────
 
-    private fun setupBottomNav() {
+    /** Destinations that keep the FAB and the banner ad on screen. */
+    private val topLevelDestinations = setOf(
+        R.id.homeFragment,
+        R.id.templateCategoriesFragment,
+        R.id.filesFragment,
+        R.id.settingsFragment
+    )
+
+    /**
+     * Home draws its header full-bleed behind the status bar, so the root must
+     * NOT reserve the top inset there. Every other screen does reserve it.
+     */
+    private var drawsUnderStatusBar = false
+
+    /** Status bar height in px, published for fragments that pad themselves. */
+    var statusBarInsetPx: Int = 0
+        private set
+
+    private fun setupChrome() {
         binding.fabAddImage.visibility = View.GONE
         binding.mainBannerAd.setAdUnitId(BuildConfig.AD_BANNER_MAIN)
 
-        // Force FAB above the nav bar (z-order + elevation)
         val density = resources.displayMetrics.density
-        binding.bottomNavigation.elevation = 0f
-        ViewCompat.setElevation(binding.bottomNavigation, 0f)
-        binding.bottomNavTopShadow.elevation = 6f * density
-        ViewCompat.setElevation(binding.bottomNavTopShadow, 6f * density)
         binding.fabAddImage.elevation = 16f * density
         ViewCompat.setElevation(binding.fabAddImage, 16f * density)
         binding.fabAddImage.bringToFront()
@@ -185,106 +195,19 @@ class MainActivity : AppCompatActivity() {
             pickImageLauncher.launch("image/*")
         }
 
-        val nav = binding.bottomNavigation as BottomNavigationView
-
-        // Attach the springy top indicator once the nav has been measured.
-        nav.post { attachSpringIndicator(nav) }
-
-        // SINGLE item-selected listener (handles nav + indicator move).
-        nav.setOnItemSelectedListener { item ->
-            val index = indexForMenuItem(item.itemId)
-            if (index != -1 && index != CENTER_INDEX) {
-                moveIndicatorTo(nav, index)
-            }
-
-            when (item.itemId) {
-                R.id.nav_home -> {
-                    if (navController.currentDestination?.id != R.id.homeFragment)
-                        navController.navigate(R.id.homeFragment, null, navOptions)
-                    true
-                }
-                R.id.nav_templates -> {
-                    if (navController.currentDestination?.id != R.id.templateCategoriesFragment)
-                        navController.navigate(R.id.templateCategoriesFragment, null, navOptions)
-                    true
-                }
-                R.id.nav_add_images -> false // center FAB slot, never selectable
-                R.id.nav_fav -> {
-                    if (navController.currentDestination?.id != R.id.filesFragment)
-                        navController.navigate(R.id.filesFragment, null, navOptions)
-                    true
-                }
-                R.id.nav_settings -> {
-                    if (navController.currentDestination?.id != R.id.settingsFragment)
-                        navController.navigate(R.id.settingsFragment, null, navOptions)
-                    true
-                }
-                else -> false
-            }
-        }
-
-        // SINGLE destination-changed listener (nav visibility, status bar, tab sync, indicator).
         navController.addOnDestinationChangedListener { _, destination, _ ->
-
             if (destination.id == R.id.homeFragment && !updateCheckTriggered) {
                 updateCheckTriggered = true
                 updateManager.checkForUpdate(this)
             }
 
-            val visibleDestinations = setOf(
-                R.id.homeFragment,
-                R.id.templateCategoriesFragment,
-                R.id.filesFragment,
-                R.id.settingsFragment
-            )
+            val isTopLevel = destination.id in topLevelDestinations
+            binding.mainBannerAd.visibility = if (isTopLevel) View.VISIBLE else View.GONE
+            binding.bannerAdDivider.visibility = if (isTopLevel) View.VISIBLE else View.GONE
+            binding.fabAddImage.visibility = if (isTopLevel) View.VISIBLE else View.GONE
+            if (isTopLevel) binding.fabAddImage.bringToFront()
 
-            val isNavVisible = destination.id in visibleDestinations
-
-            if (isNavVisible) {
-                binding.mainBannerAd.visibility = View.VISIBLE
-                binding.bannerAdDivider.visibility = View.VISIBLE
-                binding.bottomNavTopShadow.visibility = View.VISIBLE
-                binding.fabAddImage.visibility = View.VISIBLE
-                indicatorView?.visibility = View.VISIBLE
-
-                if (!nav.isVisible) {
-                    nav.visibility = View.VISIBLE
-                    val navH = if (nav.height > 0) nav.height.toFloat() else 200f
-                    nav.translationY = navH
-                    binding.bottomNavTopShadow.translationY = navH
-                    binding.bannerAdDivider.translationY = navH
-                    nav.animate().translationY(0f).setDuration(350)
-                        .setUpdateListener { syncIndicatorToNav(nav) }
-                        .withEndAction {
-                            if (!isDestroyed) {
-                                syncIndicatorToNav(nav)
-                            }
-                        }
-                        .start()
-                } else {
-                    nav.translationY = 0f
-                    syncIndicatorToNav(nav)
-                }
-            } else {
-                binding.mainBannerAd.visibility = View.GONE
-                binding.bannerAdDivider.visibility = View.GONE
-                binding.bottomNavTopShadow.visibility = View.GONE
-                binding.bottomNavigation.visibility = View.GONE
-                binding.fabAddImage.visibility = View.GONE
-                indicatorView?.visibility = View.GONE
-            }
-
-            applyStatusBarColor()
-
-            // Sync selected tab + indicator with the actual destination.
-            val index = when (destination.id) {
-                R.id.homeFragment -> { nav.selectedItemId = R.id.nav_home; 0 }
-                R.id.templateCategoriesFragment -> { nav.selectedItemId = R.id.nav_templates; 1 }
-                R.id.filesFragment -> { nav.selectedItemId = R.id.nav_fav; 3 }
-                R.id.settingsFragment -> { nav.selectedItemId = R.id.nav_settings; 4 }
-                else -> -1
-            }
-            if (index != -1) nav.post { moveIndicatorTo(nav, index) }
+            applyStatusBarFor(destination.id)
         }
 
         onBackPressedDispatcher.addCallback(this) {
@@ -300,293 +223,51 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private var isNavHidden = false
-    private var accumulatedDy = 0
-    private val hideThreshold = 12
-    private val showThreshold = 12
-
-    /** Fragments just forward their scroll deltas here. All logic lives in the activity. */
-    fun onContentScrolled(scrollY: Int, oldScrollY: Int) {
-        val dy = scrollY - oldScrollY
-
-        if (dy > 0 && accumulatedDy < 0) accumulatedDy = 0
-        if (dy < 0 && accumulatedDy > 0) accumulatedDy = 0
-        accumulatedDy += dy
-
-        when {
-            accumulatedDy > hideThreshold -> {
-                setNavAndFabHidden(true)
-                accumulatedDy = 0
-            }
-            accumulatedDy < -showThreshold -> {
-                setNavAndFabHidden(false)
-                accumulatedDy = 0
-            }
-        }
-
-        if (scrollY == 0) {
-            setNavAndFabHidden(false)
-            accumulatedDy = 0
-        }
-    }
-
-    /**
-     * Attach any NestedScrollView to the nav hide/show behaviour in one call.
-     * Resets state each time so switching fragments starts clean.
-     */
-    /** NestedScrollView (Home ka SpringNestedScrollView bhi isi me aata hai). */
-    fun bindScrollToNav(scrollView: androidx.core.widget.NestedScrollView) {
-        accumulatedDy = 0
-        setNavAndFabHidden(false)
-        scrollView.setOnScrollChangeListener(
-            androidx.core.widget.NestedScrollView.OnScrollChangeListener { _, _, scrollY, _, oldScrollY ->
-                onContentScrolled(scrollY, oldScrollY)
-            }
-        )
-    }
-
-    /** Plain ScrollView (Settings). */
-    fun bindScrollToNav(scrollView: android.widget.ScrollView) {
-        accumulatedDy = 0
-        setNavAndFabHidden(false)
-        scrollView.setOnScrollChangeListener { _, _, scrollY, _, oldScrollY ->
-            onContentScrolled(scrollY, oldScrollY)
-        }
-    }
-
-    /** RecyclerView (Templates, FilesList, aur Files ke andar wale grids). */
-    fun bindScrollToNav(recyclerView: androidx.recyclerview.widget.RecyclerView) {
-        accumulatedDy = 0
-        setNavAndFabHidden(false)
-        recyclerView.addOnScrollListener(object :
-            androidx.recyclerview.widget.RecyclerView.OnScrollListener() {
-            override fun onScrolled(rv: androidx.recyclerview.widget.RecyclerView, dx: Int, dy: Int) {
-                onContentScrolledByDelta(dy, rv)
-            }
-        })
-    }
-
-    /** RecyclerView delta-based forwarding (dy already = delta). */
-    private fun onContentScrolledByDelta(dy: Int, rv: androidx.recyclerview.widget.RecyclerView) {
-        if (dy > 0 && accumulatedDy < 0) accumulatedDy = 0
-        if (dy < 0 && accumulatedDy > 0) accumulatedDy = 0
-        accumulatedDy += dy
-
-        when {
-            accumulatedDy > hideThreshold -> { setNavAndFabHidden(true); accumulatedDy = 0 }
-            accumulatedDy < -showThreshold -> { setNavAndFabHidden(false); accumulatedDy = 0 }
-        }
-
-        // RecyclerView top par hai? (koi item upar scroll na ho sake)
-        if (!rv.canScrollVertically(-1)) {
-            setNavAndFabHidden(false)
-            accumulatedDy = 0
-        }
-    }
-
-    fun setNavAndFabHidden(hidden: Boolean) {
-        if (isNavHidden == hidden) return
-        isNavHidden = hidden
-
-        val nav = binding.bottomNavigation
-        val fab = binding.fabAddImage
-        val density = resources.displayMetrics.density
-        val margin = 20 * density   // right aur bottom dono ke liye same margin
-
-        val screenW = resources.displayMetrics.widthPixels
-        val screenH = resources.displayMetrics.heightPixels
-        val fabHalf = fab.width / 2f
-
-        // X: right edge se `margin` door
-        val fabTargetX = (screenW / 2f) - fabHalf - margin
-
-        // Y: FAB ko screen bottom se `margin` upar le jao taaki bottom gap = right gap
-        val fabLocation = IntArray(2)
-        fab.getLocationOnScreen(fabLocation)
-        val fabCurrentBottom = fabLocation[1] + fab.height   // current absolute bottom
-        val fabTargetBottom = screenH - margin               // desired bottom
-        val fabTargetY = (fabTargetBottom - fabCurrentBottom).toFloat()
-
-        val bannerExtraY = if (binding.mainBannerAd.isVisible) binding.mainBannerAd.height.toFloat() else 0f
-
-        if (hidden) {
-            nav.animate()
-                .translationY(nav.height.toFloat() + bannerExtraY + 40f)
-                .setDuration(250)
-                .setInterpolator(android.view.animation.AccelerateInterpolator())
-                .setUpdateListener { syncIndicatorToNav(nav) }
-                .withEndAction { indicatorView?.visibility = View.GONE }
-                .start()
-
-            if (binding.mainBannerAd.isVisible) {
-                binding.mainBannerAd.animate()
-                    .translationY(bannerExtraY + 40f)
-                    .setDuration(250)
-                    .setInterpolator(android.view.animation.AccelerateInterpolator())
-                    .start()
-            }
-
-            // FAB diagonally → bottom-right corner (right + neeche, equal margins)
-            fab.animate()
-                .translationX(fabTargetX)
-                .translationY(fabTargetY)
-                .setDuration(250)
-                .setInterpolator(android.view.animation.DecelerateInterpolator())
-                .start()
-        } else {
-            indicatorView?.visibility = View.VISIBLE
-
-            nav.animate()
-                .translationY(0f)
-                .setDuration(250)
-                .setInterpolator(android.view.animation.DecelerateInterpolator())
-                .setUpdateListener { syncIndicatorToNav(nav) }
-                .start()
-
-            if (binding.mainBannerAd.isVisible) {
-                binding.mainBannerAd.animate()
-                    .translationY(0f)
-                    .setDuration(250)
-                    .setInterpolator(android.view.animation.DecelerateInterpolator())
-                    .start()
-            }
-
-            fab.animate()
-                .translationX(0f)
-                .translationY(0f)
-                .setDuration(250)
-                .setInterpolator(android.view.animation.DecelerateInterpolator())
-                .start()
-        }
-    }
-
-    private var indicatorView: View? = null
-    private var indicatorSpringX: SpringAnimation? = null
-    private var indicatorW: Int = 0
-
-    private val CENTER_INDEX = 2  // nav_add_images slot (FAB), indicator skips it
-
-    private fun indexForMenuItem(itemId: Int): Int = when (itemId) {
-        R.id.nav_home -> 0
-        R.id.nav_templates -> 1
-        R.id.nav_add_images -> 2
-        R.id.nav_fav -> 3
-        R.id.nav_settings -> 4
-        else -> -1
-    }
-
-    /**
-     * X center of each item, accounting for the nav's horizontal padding.
-     * The real item strip is (width - paddingLeft - paddingRight), divided
-     * equally among all menu slots. This makes the dot land exactly over each icon.
-     */
-    private fun xForIndex(nav: BottomNavigationView, index: Int): Float {
-        val usableW = nav.width - nav.paddingLeft - nav.paddingRight
-        val itemW = usableW / nav.menu.size()
-        val itemCenter = nav.x + nav.paddingLeft + itemW * index + itemW / 2f
-        return itemCenter - indicatorW / 2f
-    }
-
-    /** Y position: just INSIDE the top edge of the white bar (not above it). */
-    private fun yForIndicator(nav: BottomNavigationView): Float {
-        val topInset = (4 * resources.displayMetrics.density)
-        return nav.y + topInset
-    }
-
-    /** Keep the indicator, top shadow, and banner divider glued to the nav while the nav slides in/out. */
-    private fun syncIndicatorToNav(nav: BottomNavigationView) {
-        binding.bottomNavTopShadow.translationY = nav.translationY
-        binding.bannerAdDivider.translationY = nav.translationY
-        val iv = indicatorView ?: return
-        iv.translationY = nav.translationY      // match the slide
-        iv.y = yForIndicator(nav) + nav.translationY
-    }
-
-    private fun moveIndicatorTo(nav: BottomNavigationView, index: Int) {
-        if (indicatorView == null) return
-        indicatorSpringX?.animateToFinalPosition(xForIndex(nav, index))
-        indicatorView?.y = yForIndicator(nav)
-    }
-
-    private fun attachSpringIndicator(nav: BottomNavigationView) {
-        if (indicatorView != null) return  // guard against double-attach
-
-        val ctx = nav.context
-        val density = resources.displayMetrics.density
-        val indicatorH = (3 * density).toInt()   // 3dp tall
-        indicatorW = (22 * density).toInt()      // 22dp wide
-
-        val indicator = View(ctx).apply {
-            layoutParams = android.widget.FrameLayout.LayoutParams(indicatorW, indicatorH)
-            background = android.graphics.drawable.GradientDrawable().apply {
-                shape = android.graphics.drawable.GradientDrawable.RECTANGLE
-                cornerRadius = indicatorH / 2f
-                setColor(androidx.core.content.ContextCompat.getColor(ctx, R.color.appColor))
-            }
-            // Above top shadow (6dp) but below FAB (16dp)
-            elevation = 10f * density
-            ViewCompat.setElevation(this, 10f * density)
-        }
-
-        val root = binding.root as androidx.constraintlayout.widget.ConstraintLayout
-        root.addView(indicator)
-        indicatorView = indicator
-
-        // Initial position based on current destination (default: home).
-        val startIndex = when (navController.currentDestination?.id) {
-            R.id.templateCategoriesFragment -> 1
-            R.id.filesFragment -> 3
-            R.id.settingsFragment -> 4
-            else -> 0
-        }
-        indicator.x = xForIndex(nav, startIndex)
-        indicator.y = yForIndicator(nav)
-
-        indicatorSpringX = SpringAnimation(indicator, DynamicAnimation.X).apply {
-            spring = SpringForce().apply {
-                dampingRatio = SpringForce.DAMPING_RATIO_MEDIUM_BOUNCY
-                stiffness = SpringForce.STIFFNESS_LOW
-            }
-        }
-
-        // z-order: indicator nav ke upar, lekin FAB sabse upar
-        indicator.bringToFront()
-        binding.fabAddImage.bringToFront()
-
-        // Start hidden unless we're already on a top-level (nav-visible) screen.
-        val navVisibleNow = navController.currentDestination?.id in setOf(
-            R.id.homeFragment,
-            R.id.templateCategoriesFragment,
-            R.id.filesFragment,
-            R.id.settingsFragment
-        )
-        indicator.visibility = if (navVisibleNow) View.VISIBLE else View.GONE
-        binding.fabAddImage.visibility = if (navVisibleNow) View.VISIBLE else View.GONE
-
-        if (navVisibleNow) {
-            nav.post {
-                if (!isDestroyed && indicatorView != null) {
-                    syncIndicatorToNav(nav)
-                    moveIndicatorTo(nav, startIndex)
-                }
-            }
-        }
-    }
-
     // ──────────────────────────────────────────────────────────
     // Status bar / immersive
     // ──────────────────────────────────────────────────────────
 
     private fun setStatusBarTextColor(darkIcons: Boolean) {
-        val controller = androidx.core.view.WindowCompat.getInsetsController(window, window.decorView)
+        val controller = WindowCompat.getInsetsController(window, window.decorView)
         controller.isAppearanceLightStatusBars = darkIcons
     }
 
-    private fun applyStatusBarColor() {
-        val isNightMode = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
-        window.statusBarColor = androidx.core.content.ContextCompat.getColor(this, R.color.appColor)
-        setStatusBarTextColor(darkIcons = false)
+    /**
+     * Home: transparent status bar so the green header runs edge to edge behind it.
+     * Every other screen: a flat white surface (dark surface at night) with the
+     * icon colour flipped to match.
+     */
+    private fun applyStatusBarFor(destinationId: Int?) {
+        val isHome = destinationId == R.id.homeFragment
+        val isNight = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
+                Configuration.UI_MODE_NIGHT_YES
+
+        if (drawsUnderStatusBar != isHome) {
+            drawsUnderStatusBar = isHome
+            binding.root.setPadding(
+                0,
+                if (isHome) 0 else statusBarInsetPx,
+                0,
+                binding.root.paddingBottom
+            )
+            ViewCompat.requestApplyInsets(binding.root)
+            ViewCompat.getRootWindowInsets(binding.root)?.let {
+                ViewCompat.dispatchApplyWindowInsets(binding.navHostMain, it)
+            }
+        }
+
+        if (isHome) {
+            window.statusBarColor = android.graphics.Color.TRANSPARENT
+            setStatusBarTextColor(darkIcons = false)
+        } else {
+            window.statusBarColor =
+                androidx.core.content.ContextCompat.getColor(this, R.color.status_bar_surface)
+            setStatusBarTextColor(darkIcons = !isNight)
+        }
     }
+
+    private fun applyStatusBarColor() =
+        applyStatusBarFor(_navController?.currentDestination?.id)
 
     private fun forceImmersiveMode() {
         window?.let { w ->

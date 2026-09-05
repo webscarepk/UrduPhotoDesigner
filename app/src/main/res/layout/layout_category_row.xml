@@ -1,69 +1,77 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:orientation="vertical"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content">
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
 
-    <LinearLayout
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingTop="6dp"
-        android:paddingHorizontal="18dp"
-        android:gravity="center_vertical">
+        android:paddingHorizontal="19dp"
+        android:paddingTop="10dp">
 
         <TextView
             android:id="@+id/title"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:textColor="@color/black"
+            android:layout_marginEnd="12dp"
+            android:ellipsize="end"
             android:fontFamily="@font/bold"
-            android:textSize="15sp" />
+            android:maxLines="1"
+            android:paddingVertical="6dp"
+            android:textColor="@color/black"
+            android:textSize="15sp"
+            app:layout_constraintEnd_toStartOf="@id/seeAll"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:text="@string/templates" />
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/seeAll"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:background="?selectableItemBackground"
+            app:layout_constraintBottom_toBottomOf="@id/title"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="@id/fontsTitle"
-            app:layout_constraintBottom_toBottomOf="@id/fontsTitle">
+            app:layout_constraintTop_toTopOf="@id/title">
+
             <TextView
+                android:id="@+id/fontsSeeAll"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/see_all"
+                android:layout_marginEnd="6dp"
                 android:fontFamily="@font/bold"
+                android:paddingVertical="6dp"
+                android:text="@string/see_all"
                 android:textColor="@color/gray"
                 android:textSize="12sp"
-                android:paddingVertical="6dp"
-                app:layout_constraintEnd_toStartOf="@id/more2"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                android:layout_marginEnd="6dp"
-                android:id="@+id/fontsSeeAll"/>
+                app:layout_constraintEnd_toStartOf="@id/more2"
+                app:layout_constraintTop_toTopOf="parent" />
 
             <ImageView
+                android:id="@+id/more2"
                 android:layout_width="10dp"
                 android:layout_height="10dp"
-                android:src="@drawable/ic_dropdown"
-                android:id="@+id/more2"
+                android:contentDescription="@null"
                 android:rotation="270"
-                app:tint="@color/gray"
+                android:src="@drawable/ic_dropdown"
+                app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintBottom_toBottomOf="parent"/>
+                app:tint="@color/gray" />
         </androidx.constraintlayout.widget.ConstraintLayout>
-    </LinearLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
     <androidx.recyclerview.widget.RecyclerView
-        android:layout_marginTop="6dp"
         android:id="@+id/listRV"
-        android:paddingHorizontal="12dp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:clipToPadding="false"
-        app:layoutManager="com.webscare.urducanvas.common.views.SafeLinearLayoutManager"
         android:orientation="horizontal"
-        tools:listitem="@layout/layout_template_category"
-        android:overScrollMode="never" />
+        android:overScrollMode="never"
+        android:paddingHorizontal="12dp"
+        app:layoutManager="com.webscare.urducanvas.common.views.SafeLinearLayoutManager"
+        tools:listitem="@layout/layout_template_category" />
 </LinearLayout>

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+    Decorative watermark for the home header: an Islamic-geometry rosette
+    (concentric circles, interlocking squares, and a ring of petals) drawn
+    in translucent white so it reads as texture, never as content.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="220dp"
+    android:height="220dp"
+    android:viewportWidth="220"
+    android:viewportHeight="220">
+
+    <!-- Soft filled halo -->
+    <path
+        android:fillColor="#14FFFFFF"
+        android:pathData="M110,14 a96,96 0 1,0 0.1,0 Z" />
+
+    <!-- Concentric rings -->
+    <path
+        android:pathData="M15,110 a95,95 0 1,0 190,0 a95,95 0 1,0 -190,0"
+        android:strokeColor="#33FFFFFF"
+        android:strokeWidth="1.4" />
+    <path
+        android:pathData="M38,110 a72,72 0 1,0 144,0 a72,72 0 1,0 -144,0"
+        android:strokeColor="#2BFFFFFF"
+        android:strokeWidth="1.2" />
+    <path
+        android:pathData="M62,110 a48,48 0 1,0 96,0 a48,48 0 1,0 -96,0"
+        android:strokeColor="#22FFFFFF"
+        android:strokeWidth="1.2" />
+
+    <!-- Interlocking squares (rub el hizb) -->
+    <path
+        android:pathData="M62,62 L158,62 L158,158 L62,158 Z"
+        android:strokeColor="#2EFFFFFF"
+        android:strokeWidth="1.3" />
+    <path
+        android:pathData="M110,42 L178,110 L110,178 L42,110 Z"
+        android:strokeColor="#2EFFFFFF"
+        android:strokeWidth="1.3" />
+
+    <!-- Petal ring -->
+    <path
+        android:pathData="M168,110 a14,14 0 1,0 28,0 a14,14 0 1,0 -28,0"
+        android:strokeColor="#1FFFFFFF"
+        android:strokeWidth="1.1" />
+    <path
+        android:pathData="M146.9,160.9 a14,14 0 1,0 28,0 a14,14 0 1,0 -28,0"
+        android:strokeColor="#1FFFFFFF"
+        android:strokeWidth="1.1" />
+    <path
+        android:pathData="M96,182 a14,14 0 1,0 28,0 a14,14 0 1,0 -28,0"
+        android:strokeColor="#1FFFFFFF"
+        android:strokeWidth="1.1" />
+    <path
+        android:pathData="M45.1,160.9 a14,14 0 1,0 28,0 a14,14 0 1,0 -28,0"
+        android:strokeColor="#1FFFFFFF"
+        android:strokeWidth="1.1" />
+    <path
+        android:pathData="M24,110 a14,14 0 1,0 28,0 a14,14 0 1,0 -28,0"
+        android:strokeColor="#1FFFFFFF"
+        android:strokeWidth="1.1" />
+    <path
+        android:pathData="M45.1,59.1 a14,14 0 1,0 28,0 a14,14 0 1,0 -28,0"
+        android:strokeColor="#1FFFFFFF"
+        android:strokeWidth="1.1" />
+    <path
+        android:pathData="M96,38 a14,14 0 1,0 28,0 a14,14 0 1,0 -28,0"
+        android:strokeColor="#1FFFFFFF"
+        android:strokeWidth="1.1" />
+    <path
+        android:pathData="M146.9,59.1 a14,14 0 1,0 28,0 a14,14 0 1,0 -28,0"
+        android:strokeColor="#1FFFFFFF"
+        android:strokeWidth="1.1" />
+
+    <!-- Centre bloom -->
+    <path
+        android:pathData="M96,110 a14,14 0 1,0 28,0 a14,14 0 1,0 -28,0"
+        android:strokeColor="#26FFFFFF"
+        android:strokeWidth="1.2" />
+</vector>

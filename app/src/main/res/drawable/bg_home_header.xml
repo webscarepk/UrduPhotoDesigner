@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <shape xmlns:android="http://schemas.android.com/apk/res/android">
-    <solid android:color="@color/white" />
+    <gradient
+        android:angle="115"
+        android:startColor="@color/home_header_start"
+        android:centerColor="@color/home_header_center"
+        android:endColor="@color/home_header_end"
+        android:type="linear" />
     <corners
         android:bottomLeftRadius="28dp"
         android:bottomRightRadius="28dp" />

@@ -34,7 +34,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- AdMob Policy Separator between Bottom Navigation and Banner Ad -->
+    <!-- AdMob Policy Separator above the banner ad -->
     <View
         android:id="@+id/bannerAdDivider"
         android:layout_width="match_parent"
@@ -45,50 +45,13 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Top-only shadow above bottom navigation -->
-    <View
-        android:id="@+id/bottomNavTopShadow"
-        android:layout_width="match_parent"
-        android:layout_height="22dp"
-        android:background="@drawable/bottom_nav_top_shadow"
-        android:visibility="gone"
-        android:importantForAccessibility="no"
-        app:layout_constraintBottom_toTopOf="@id/bottomNavigation"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <com.google.android.material.bottomnavigation.BottomNavigationView
-        android:id="@+id/bottomNavigation"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@color/white"
-        android:visibility="gone"
-        android:elevation="0dp"
-        app:elevation="0dp"
-        android:translationZ="0dp"
-        android:outlineProvider="none"
-        android:clipChildren="false"
-        android:clipToPadding="false"
-        android:fitsSystemWindows="true"
-        android:paddingTop="10dp"
-        android:paddingBottom="10dp"
-        android:paddingHorizontal="10dp"
-        app:itemIconTint="@color/bottom_nav_icon_color"
-        app:activeIndicatorLabelPadding="0dp"
-        app:itemActiveIndicatorStyle="@null"
-        app:itemBackground="@null"
-        app:labelVisibilityMode="unlabeled"
-        app:menu="@menu/home_bottom_nav_menu"
-        app:paddingBottomSystemWindowInsets="true"
-        app:layout_constraintBottom_toTopOf="@id/bannerAdDivider"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <!-- Center FAB — sits on the TOP edge of the nav (like expense tracker) -->
+    <!-- Add-image FAB — parked in the bottom-right corner on top-level screens -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/fabAddImage"
         android:layout_width="62dp"
         android:layout_height="62dp"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="20dp"
         android:clickable="true"
         android:focusable="true"
         android:visibility="gone"
@@ -100,10 +63,8 @@
         app:strokeWidth="4dp"
         app:cardPreventCornerOverlap="false"
         app:cardUseCompatPadding="false"
-        app:layout_constraintTop_toTopOf="@id/bottomNavigation"
-        app:layout_constraintBottom_toTopOf="@id/bottomNavigation"
-        app:layout_constraintStart_toStartOf="@id/bottomNavigation"
-        app:layout_constraintEnd_toEndOf="@id/bottomNavigation">
+        app:layout_constraintBottom_toTopOf="@id/mainBannerAd"
+        app:layout_constraintEnd_toEndOf="parent">
 
         <ImageView
             android:layout_width="25dp"

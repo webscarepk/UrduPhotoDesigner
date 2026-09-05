@@ -1,485 +1,439 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/contrast"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     tools:context=".ui.navigation.home.HomeFragment">
 
-    <androidx.constraintlayout.widget.Guideline
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        app:layout_constraintGuide_percent="0.02"
-        android:id="@+id/topGuide"/>
-
-    <androidx.constraintlayout.widget.Guideline
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        app:layout_constraintGuide_percent="0.95"
-        android:orientation="horizontal"
-        android:id="@+id/bottomGuide"/>
-
-    <androidx.constraintlayout.widget.Guideline
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        app:layout_constraintGuide_percent="0.05"
-        android:orientation="vertical"
-        android:id="@+id/startGuide"/>
-
-    <androidx.constraintlayout.widget.Guideline
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        app:layout_constraintGuide_percent="0.95"
-        android:orientation="vertical"
-        android:id="@+id/endGuide"/>
-
-    <androidx.constraintlayout.widget.Guideline
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        app:layout_constraintGuide_percent="0.35"
-        android:orientation="horizontal"
-        android:id="@+id/centerGuide"/>
-
-    <androidx.constraintlayout.widget.Guideline
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        app:layout_constraintGuide_percent="0.31"
-        android:orientation="horizontal"
-        android:id="@+id/center2Guide"/>
-
+    <!-- ─────────────────────────────────────────────────────────────
+         HEADER — two states (expanded by default, collapsed on scroll).
+         Draws full-bleed behind the status bar; `statusSpacer` is sized
+         at runtime from the status bar inset.
+         ───────────────────────────────────────────────────────────── -->
     <androidx.constraintlayout.widget.ConstraintLayout
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        app:layout_constraintBottom_toTopOf="@id/centerGuide"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:background="@drawable/ic_home_header"
         android:id="@+id/header"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_home_header"
+        android:paddingBottom="0dp"
         android:translationZ="12dp"
-        android:paddingBottom="30dp">
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="@id/subscriptions"
-            app:layout_constraintBottom_toBottomOf="@id/subscriptions"
-            android:text="@string/app_name"
-            android:fontFamily="@font/bold"
-            android:layout_marginStart="20dp"
-            android:textSize="24sp"
-            android:textColor="@color/white"
-            android:id="@+id/title"/>
-
+        <!-- Geometry watermark — decoration only, sits under every control -->
         <ImageView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:src="@drawable/ic_subscriptions"
+            android:id="@+id/headerPattern"
+            android:layout_width="230dp"
+            android:layout_height="230dp"
+            android:layout_marginTop="-58dp"
+            android:layout_marginEnd="-72dp"
+            android:contentDescription="@null"
+            android:importantForAccessibility="no"
+            android:src="@drawable/bg_header_pattern"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            android:id="@+id/subscriptions"
-            android:layout_marginEnd="20dp"
-            android:layout_marginTop="20dp"
-            />
+            app:layout_constraintTop_toTopOf="parent" />
 
-        <com.webscare.urducanvas.common.views.RippleView
-            android:id="@+id/subscriptionRipple"
-            android:layout_width="70dp"
-            android:layout_height="70dp"
-            app:layout_constraintEnd_toEndOf="@id/subscriptions"
-            app:layout_constraintStart_toStartOf="@id/subscriptions"
-            app:layout_constraintTop_toTopOf="@id/subscriptions"
-            app:layout_constraintBottom_toBottomOf="@id/subscriptions" />
-
-        <EditText
-            android:id="@+id/searchBar"
-            style="@style/Widget.UrduCanvas.SearchBar"
+        <!-- Status bar inset spacer (height set in HomeFragment) -->
+        <View
+            android:id="@+id/statusSpacer"
             android:layout_width="0dp"
-            android:layout_marginHorizontal="20dp"
-            android:hint="@string/search_templates_fonts_and_assets"
+            android:layout_height="0dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/subscriptions"
-            android:layout_marginTop="12dp"/>
+            app:layout_constraintTop_toTopOf="parent" />
 
-        <LinearLayout
+        <!-- ── COLLAPSED STATE ───────────────────────────────────── -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/collapsedContent"
             android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:orientation="vertical"
-            android:layout_marginEnd="10dp"
-            android:id="@+id/create"
-            app:layout_constraintBottom_toTopOf="@id/fileText"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/blankCanvas"
-            app:layout_constraintTop_toBottomOf="@id/searchBar"
-            android:layout_marginTop="14dp"
-            android:layout_marginStart="32dp"
-            android:foreground="?selectableItemBackground"
-            android:background="@drawable/button_bg"
-            android:backgroundTint="@color/white"
-            android:gravity="center">
-            <ImageView
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:src="@drawable/ic_create"/>
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/upload_photo"
-                android:fontFamily="@font/bold"
-                android:textSize="12sp"
-                android:textColor="@color/black"
-                android:layout_marginTop="5dp"/>
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:orientation="vertical"
-            android:id="@+id/blankCanvas"
-            android:foreground="?selectableItemBackground"
-            android:background="@drawable/button_bg"
-            app:layout_constraintStart_toEndOf="@id/create"
-            app:layout_constraintTop_toTopOf="@id/create"
-            app:layout_constraintBottom_toBottomOf="@id/create"
-            app:layout_constraintEnd_toStartOf="@id/templates"
-            android:backgroundTint="@color/white"
-            android:gravity="center">
-            <ImageView
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:src="@drawable/ic_blank_canvas"/>
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/blank_canvas"
-                android:fontFamily="@font/bold"
-                android:textSize="12sp"
-                android:textColor="@color/black"
-                android:layout_marginTop="5dp"/>
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:orientation="vertical"
-            android:layout_marginStart="10dp"
-            android:id="@+id/templates"
-            android:layout_marginEnd="32dp"
+            android:layout_height="56dp"
+            android:alpha="0"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@id/blankCanvas"
-            app:layout_constraintTop_toTopOf="@id/create"
-            app:layout_constraintBottom_toBottomOf="@id/create"
-            android:foreground="?selectableItemBackground"
-            android:background="@drawable/button_bg"
-            android:backgroundTint="@color/white"
-            android:gravity="center">
-            <ImageView
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:src="@drawable/ic_templates_mixed"/>
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/statusSpacer">
 
             <TextView
+                android:id="@+id/collapsedTitle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="20dp"
+                android:layout_marginEnd="12dp"
+                android:ellipsize="end"
+                android:fontFamily="@font/bold"
+                android:maxLines="1"
+                android:text="@string/app_name"
+                android:textColor="@color/whiteText"
+                android:textSize="20sp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/collapsedActions"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <LinearLayout
+                android:id="@+id/collapsedActions"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/browse_templates"
-                android:fontFamily="@font/bold"
-                android:textSize="12sp"
-                android:textColor="@color/black"
-                android:layout_marginTop="5dp"/>
-        </LinearLayout>
+                android:layout_marginEnd="14dp"
+                android:orientation="horizontal"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
 
-        <LinearLayout
-            android:id="@+id/fileText"
+                <ImageView
+                    android:id="@+id/collapsedNewCanvas"
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@drawable/bg_header_icon_circle"
+                    android:contentDescription="@string/blank_canvas"
+                    android:padding="9dp"
+                    android:src="@drawable/ic_blank_canvas"
+                    app:tint="@color/whiteText" />
+
+                <ImageView
+                    android:id="@+id/collapsedAddPhoto"
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@drawable/bg_header_icon_circle"
+                    android:contentDescription="@string/upload_photo"
+                    android:padding="9dp"
+                    android:src="@drawable/ic_create"
+                    app:tint="@color/whiteText" />
+
+                <ImageView
+                    android:id="@+id/collapsedSearch"
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:background="@drawable/bg_header_icon_circle"
+                    android:contentDescription="@string/search_templates"
+                    android:padding="10dp"
+                    android:src="@drawable/ic_search"
+                    app:tint="@color/whiteText" />
+            </LinearLayout>
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <!-- ── EXPANDED STATE ────────────────────────────────────── -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/expandedContent"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            app:layout_constraintStart_toStartOf="parent"
+            android:paddingBottom="24dp"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/create"
-            app:layout_constraintBottom_toBottomOf="parent"
-            android:layout_marginTop="10dp"
-            android:layout_marginHorizontal="20dp"
-            android:gravity="center">
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/statusSpacer">
+
             <TextView
-                android:layout_width="wrap_content"
+                android:id="@+id/title"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="@string/manage_custom_fonts_assets_and_imports_in_files_tab"
+                android:layout_marginStart="20dp"
+                android:layout_marginTop="4dp"
+                android:layout_marginEnd="12dp"
+                android:ellipsize="end"
+                android:fontFamily="@font/bold"
+                android:maxLines="1"
+                android:text="@string/app_name"
+                android:textColor="@color/whiteText"
+                android:textSize="27sp"
+                app:layout_constraintEnd_toStartOf="@id/headerActions"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/subtitle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="20dp"
+                android:layout_marginTop="2dp"
+                android:layout_marginEnd="12dp"
+                android:ellipsize="end"
                 android:fontFamily="@font/regular"
-                android:textSize="12sp"
-                android:textColor="@color/white" />
+                android:maxLines="1"
+                android:text="@string/home_tagline"
+                android:textColor="@color/home_header_subtitle"
+                android:textSize="13sp"
+                app:layout_constraintEnd_toStartOf="@id/headerActions"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/title" />
 
-            <TextView
-                android:id="@+id/fileTab"
+            <LinearLayout
+                android:id="@+id/headerActions"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="5dp"
-                android:fontFamily="@font/bold"
-                android:text="@string/filesTab"
-                android:textColor="@color/white"
-                android:textSize="12sp" />
-        </LinearLayout>
+                android:layout_marginEnd="14dp"
+                android:orientation="horizontal"
+                app:layout_constraintBottom_toBottomOf="@id/subtitle"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="@id/title">
 
+                <ImageView
+                    android:id="@+id/filesBtn"
+                    android:layout_width="42dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="10dp"
+                    android:background="@drawable/bg_header_icon_circle"
+                    android:contentDescription="@string/filesTab"
+                    android:padding="10dp"
+                    android:src="@drawable/ic_files"
+                    app:tint="@color/whiteText" />
+
+                <ImageView
+                    android:id="@+id/settingsBtn"
+                    android:layout_width="42dp"
+                    android:layout_height="42dp"
+                    android:background="@drawable/bg_header_icon_circle"
+                    android:contentDescription="@string/settings"
+                    android:padding="10dp"
+                    android:src="@drawable/ic_setting"
+                    app:tint="@color/whiteText" />
+            </LinearLayout>
+
+            <EditText
+                android:id="@+id/searchBar"
+                style="@style/Widget.UrduCanvas.SearchBar"
+                android:layout_width="0dp"
+                android:layout_height="50dp"
+                android:layout_marginHorizontal="20dp"
+                android:layout_marginTop="20dp"
+                android:background="@drawable/bg_search_pill"
+                android:hint="@string/search_templates_fonts_and_assets"
+                android:paddingHorizontal="18dp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/subtitle" />
+
+            <!-- Add Photo -->
+            <LinearLayout
+                android:id="@+id/create"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="20dp"
+                android:layout_marginTop="14dp"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_home_action_card"
+                android:foreground="?selectableItemBackground"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="13dp"
+                android:paddingVertical="14dp"
+                app:layout_constraintEnd_toStartOf="@id/blankCanvas"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/searchBar"
+                app:layout_constraintWidth_percent="0.44">
+
+                <ImageView
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:background="@drawable/bg_home_action_tile"
+                    android:contentDescription="@null"
+                    android:padding="9dp"
+                    android:src="@drawable/ic_create"
+                    app:tint="@color/home_action_icon" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="9dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:fontFamily="@font/bold"
+                        android:maxLines="1"
+                        android:text="@string/upload_photo"
+                        android:textColor="@color/black"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:fontFamily="@font/regular"
+                        android:maxLines="1"
+                        android:text="@string/start_with_an_image"
+                        android:textColor="@color/gray"
+                        android:textSize="10sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- New Canvas -->
+            <LinearLayout
+                android:id="@+id/blankCanvas"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:layout_marginEnd="20dp"
+                android:background="@drawable/bg_home_action_card"
+                android:foreground="?selectableItemBackground"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="13dp"
+                android:paddingVertical="14dp"
+                app:layout_constraintBottom_toBottomOf="@id/create"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@id/create"
+                app:layout_constraintTop_toTopOf="@id/create">
+
+                <ImageView
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:background="@drawable/bg_home_action_tile"
+                    android:contentDescription="@null"
+                    android:padding="9dp"
+                    android:src="@drawable/ic_blank_canvas"
+                    app:tint="@color/home_action_icon" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="9dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:fontFamily="@font/bold"
+                        android:maxLines="1"
+                        android:text="@string/blank_canvas"
+                        android:textColor="@color/black"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:fontFamily="@font/regular"
+                        android:maxLines="1"
+                        android:text="@string/create_blank_artboard"
+                        android:textColor="@color/gray"
+                        android:textSize="10sp" />
+                </LinearLayout>
+            </LinearLayout>
+        </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
+    <!-- ─────────────────────────────────────────────────────────────
+         FEED — recents › popular templates › fonts › sizes › templates.
+         Every section is header + list on the same rhythm: the section
+         header owns the top gap, the list owns 12dp of side padding.
+         ───────────────────────────────────────────────────────────── -->
     <com.webscare.urducanvas.common.views.SpringNestedScrollView
         android:id="@+id/contentScroll"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/center2Guide"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:clipToPadding="false"
+        android:paddingBottom="110dp"
         android:scrollbars="none"
-        android:paddingBottom="100dp"
-        android:paddingTop="40dp"
-        android:clipToPadding="false">
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/header">
 
-        <androidx.constraintlayout.widget.ConstraintLayout
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
 
-            <androidx.constraintlayout.widget.ConstraintLayout
-                android:paddingHorizontal="19dp"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                android:id="@+id/recentProjects">
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/recent_projects"
-                    android:fontFamily="@font/bold"
-                    android:textColor="@color/black"
-                    android:textSize="15sp"
-                    android:paddingVertical="6dp"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"
-                    android:id="@+id/recentTitle"/>
-
-                <androidx.constraintlayout.widget.ConstraintLayout
-                    android:id="@+id/recentSeeAllBtn"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toTopOf="@id/recentTitle"
-                    app:layout_constraintBottom_toBottomOf="@id/recentTitle"
-                    android:background="?selectableItemBackground">
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/see_all"
-                        android:fontFamily="@font/bold"
-                        android:textColor="@color/gray"
-                        android:textSize="12sp"
-                        android:paddingVertical="6dp"
-                        app:layout_constraintEnd_toStartOf="@id/more1"
-                        app:layout_constraintBottom_toBottomOf="parent"
-                        app:layout_constraintTop_toTopOf="parent"
-                        android:layout_marginEnd="6dp"
-                        android:id="@+id/recentSeeAll"/>
-
-                    <ImageView
-                        android:layout_width="10dp"
-                        android:layout_height="10dp"
-                        android:src="@drawable/ic_dropdown"
-                        android:id="@+id/more1"
-                        android:rotation="270"
-                        app:tint="@color/gray"
-                        app:layout_constraintEnd_toEndOf="parent"
-                        app:layout_constraintTop_toTopOf="parent"
-                        app:layout_constraintBottom_toBottomOf="parent"/>
-                </androidx.constraintlayout.widget.ConstraintLayout>
-            </androidx.constraintlayout.widget.ConstraintLayout>
+            <!-- Recent projects -->
+            <include
+                android:id="@+id/recentProjects"
+                layout="@layout/layout_home_section_header"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recentsRV"
-                android:layout_width="0dp"
-                android:paddingHorizontal="12dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
                 android:clipToPadding="false"
-                app:layout_constraintTop_toBottomOf="@id/recentProjects"
+                android:orientation="horizontal"
+                android:paddingHorizontal="12dp"
                 app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-                app:spanCount="2"
-                tools:listitem="@layout/layout_recents_item"
-                android:orientation="horizontal"/>
+                tools:listitem="@layout/layout_recents_item" />
 
-            <androidx.constraintlayout.widget.ConstraintLayout
-                android:paddingHorizontal="19dp"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/recentsRV"
-                android:id="@+id/popularTemplate">
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/popular_templates"
-                    android:fontFamily="@font/bold"
-                    android:textColor="@color/black"
-                    android:textSize="15sp"
-                    android:paddingVertical="6dp"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"
-                    android:id="@+id/popularTemplateTitle"/>
-
-                <androidx.constraintlayout.widget.ConstraintLayout
-                    android:id="@+id/popularTemplateSeeAllBtn"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toTopOf="@id/popularTemplateTitle"
-                    app:layout_constraintBottom_toBottomOf="@id/popularTemplateTitle"
-                    android:background="?selectableItemBackground">
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/see_all"
-                        android:fontFamily="@font/bold"
-                        android:textColor="@color/gray"
-                        android:textSize="12sp"
-                        android:paddingVertical="6dp"
-                        app:layout_constraintEnd_toStartOf="@id/more3"
-                        app:layout_constraintBottom_toBottomOf="parent"
-                        app:layout_constraintTop_toTopOf="parent"
-                        android:layout_marginEnd="6dp"
-                        android:id="@+id/popularTemplateSeeAll"/>
-
-                    <ImageView
-                        android:layout_width="10dp"
-                        android:layout_height="10dp"
-                        android:src="@drawable/ic_dropdown"
-                        android:id="@+id/more3"
-                        android:rotation="270"
-                        app:tint="@color/gray"
-                        app:layout_constraintEnd_toEndOf="parent"
-                        app:layout_constraintTop_toTopOf="parent"
-                        app:layout_constraintBottom_toBottomOf="parent"/>
-                </androidx.constraintlayout.widget.ConstraintLayout>
-            </androidx.constraintlayout.widget.ConstraintLayout>
+            <!-- Popular templates -->
+            <include
+                android:id="@+id/popularTemplate"
+                layout="@layout/layout_home_section_header"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/popularTemplateRV"
-                android:layout_width="0dp"
-                android:paddingHorizontal="12dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
                 android:clipToPadding="false"
-                app:layout_constraintTop_toBottomOf="@id/popularTemplate"
+                android:orientation="horizontal"
+                android:paddingHorizontal="12dp"
                 app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-                app:spanCount="2"
-                tools:listitem="@layout/layout_template_popular"
-                android:orientation="horizontal"/>
+                tools:listitem="@layout/layout_template_popular" />
 
             <com.webscare.ads.WebsCareNativeView
                 android:id="@+id/home_native_ad"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginHorizontal="16dp"
+                android:layout_marginHorizontal="19dp"
+                android:layout_marginTop="16dp"
                 app:webscare_native_size="small"
-                app:webscare_show_shimmer="true"
-                app:layout_constraintTop_toBottomOf="@id/popularTemplateRV"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent" />
+                app:webscare_show_shimmer="true" />
 
-            <androidx.constraintlayout.widget.ConstraintLayout
-                android:paddingHorizontal="19dp"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/home_native_ad"
-                android:id="@+id/popularFonts">
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/popular_fonts"
-                    android:fontFamily="@font/bold"
-                    android:textColor="@color/black"
-                    android:textSize="15sp"
-                    android:paddingVertical="6dp"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"
-                    android:id="@+id/fontsTitle"/>
-
-                <androidx.constraintlayout.widget.ConstraintLayout
-                    android:id="@+id/popularFontsSeeAllBtn"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toTopOf="@id/fontsTitle"
-                    app:layout_constraintBottom_toBottomOf="@id/fontsTitle"
-                    android:background="?selectableItemBackground">
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/see_all"
-                        android:fontFamily="@font/bold"
-                        android:textColor="@color/gray"
-                        android:textSize="12sp"
-                        android:paddingVertical="6dp"
-                        app:layout_constraintEnd_toStartOf="@id/more2"
-                        app:layout_constraintBottom_toBottomOf="parent"
-                        app:layout_constraintTop_toTopOf="parent"
-                        android:layout_marginEnd="6dp"
-                        android:id="@+id/fontsSeeAll"/>
-
-                    <ImageView
-                        android:layout_width="10dp"
-                        android:layout_height="10dp"
-                        android:src="@drawable/ic_dropdown"
-                        android:id="@+id/more2"
-                        android:rotation="270"
-                        app:tint="@color/gray"
-                        app:layout_constraintEnd_toEndOf="parent"
-                        app:layout_constraintTop_toTopOf="parent"
-                        app:layout_constraintBottom_toBottomOf="parent"/>
-                </androidx.constraintlayout.widget.ConstraintLayout>
-            </androidx.constraintlayout.widget.ConstraintLayout>
+            <!-- Popular fonts -->
+            <include
+                android:id="@+id/popularFonts"
+                layout="@layout/layout_home_section_header"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/fontsRV"
-                android:layout_width="0dp"
-                android:paddingHorizontal="12dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
                 android:clipToPadding="false"
-                app:layout_constraintTop_toBottomOf="@id/popularFonts"
+                android:orientation="horizontal"
+                android:paddingHorizontal="12dp"
                 app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-                app:spanCount="2"
-                tools:listitem="@layout/layout_popular_font_item"
-                android:orientation="horizontal"/>
+                tools:listitem="@layout/layout_popular_font_item" />
+
+            <!-- Browse by size -->
+            <include
+                android:id="@+id/sizesSection"
+                layout="@layout/layout_home_section_header"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
 
             <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/trendsRV"
-                android:layout_width="0dp"
+                android:id="@+id/sizesRV"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:nestedScrollingEnabled="false"
-                tools:listitem="@layout/layout_category_row"
+                android:clipToPadding="false"
+                android:orientation="horizontal"
+                android:paddingHorizontal="12dp"
                 app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                tools:listitem="@layout/layout_sizes_filter_item" />
+
+            <!-- All templates, by category — rows carry their own titles -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/categoriesRV"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clipToPadding="false"
+                android:nestedScrollingEnabled="false"
                 android:orientation="vertical"
+                android:paddingTop="0dp"
                 android:paddingBottom="20dp"
-                app:layout_constraintTop_toBottomOf="@id/fontsRV"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                android:clipToPadding="false"/>
-
-        </androidx.constraintlayout.widget.ConstraintLayout>
+                app:layoutManager="com.webscare.urducanvas.common.views.SafeLinearLayoutManager"
+                tools:listitem="@layout/layout_category_row" />
+        </LinearLayout>
     </com.webscare.urducanvas.common.views.SpringNestedScrollView>
-
 
     <!-- Loading skeleton (shown during initial fetch) -->
     <include
@@ -488,10 +442,10 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:visibility="gone"
-        app:layout_constraintTop_toBottomOf="@id/center2Guide"
         app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintTop_toBottomOf="@id/header" />
 
     <!-- Error / empty state -->
     <include
@@ -500,8 +454,8 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:visibility="gone"
-        app:layout_constraintTop_toBottomOf="@id/center2Guide"
         app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintTop_toBottomOf="@id/header" />
 </androidx.constraintlayout.widget.ConstraintLayout>

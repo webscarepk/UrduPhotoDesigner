@@ -90,4 +90,15 @@
     <color name="state_teal">#0E9F6E</color>
     <color name="state_teal_tint">#E5F6EF</color>
     <color name="contrast_transparent">#00F7F7F7</color>
+
+    <!-- Home header gradient + surfaces -->
+    <color name="home_header_start">#0A6B31</color>
+    <color name="home_header_center">#137A3B</color>
+    <color name="home_header_end">#2E9C57</color>
+    <color name="home_header_icon_bg">#33FFFFFF</color>
+    <color name="home_action_tile">#DCEFE2</color>
+    <color name="home_action_icon">#005D28</color>
+    <color name="home_header_subtitle">#B3FFFFFF</color>
+    <color name="size_tile_stroke">#E3E6E4</color>
+    <color name="status_bar_surface">#FFFFFF</color>
 </resources>

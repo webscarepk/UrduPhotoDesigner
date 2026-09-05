@@ -124,7 +124,6 @@ class FilesListFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         setEvents()
         initObservers()
-        (activity as? MainActivity)?.bindScrollToNav(_binding!!.filesRV)
         _binding!!.filesRV.edgeEffectFactory = SpringEdgeEffectFactory()
     }
 
