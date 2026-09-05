@@ -96,6 +96,10 @@ class FilesFragment : Fragment() {
             }
         })
 
+        binding.back.addPressEffect {
+            findNavController().navigateUp()
+        }
+
         binding.listStyle.addPressEffect {
             viewModel.toggleGrid()
         }

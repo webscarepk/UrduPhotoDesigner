@@ -35,16 +35,30 @@
         android:orientation="vertical"
         android:id="@+id/endGuide"/>
 
+    <ImageView
+        android:id="@+id/back"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:backgroundTint="@color/white"
+        android:padding="7dp"
+        android:background="@drawable/button_bg_round"
+        android:src="@drawable/ic_back"
+        app:tint="@color/black"
+        app:layout_constraintStart_toEndOf="@id/startGuide"
+        app:layout_constraintTop_toBottomOf="@id/topGuide"/>
+
     <TextView
+        android:id="@+id/title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintTop_toBottomOf="@id/topGuide"
-        app:layout_constraintStart_toEndOf="@id/startGuide"
+        android:layout_marginStart="8dp"
         android:text="@string/settings"
         android:fontFamily="@font/bold"
         android:textSize="19sp"
         android:textColor="@color/black"
-        android:id="@+id/title"/>
+        app:layout_constraintStart_toEndOf="@id/back"
+        app:layout_constraintTop_toTopOf="@id/back"
+        app:layout_constraintBottom_toBottomOf="@id/back"/>
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="0dp"

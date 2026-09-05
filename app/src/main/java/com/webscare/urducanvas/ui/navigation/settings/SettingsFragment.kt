@@ -54,7 +54,6 @@ class SettingsFragment : androidx.fragment.app.Fragment() {
         observeSubscription()
         setEvents()
         setVersionInfo()
-        (activity as? MainActivity)?.bindScrollToNav(binding.settingsScroll)
     }
 
     override fun onResume() {
@@ -154,6 +153,8 @@ class SettingsFragment : androidx.fragment.app.Fragment() {
     }
 
     private fun setEvents() {
+        binding.back.addPressEffect { findNavController().navigateUp() }
+
         // Entire upgrade card + button both navigate to subscriptions.
         binding.subscriptionCard.addPressEffect { goToSubscriptions() }
         binding.upgradeNow.addPressEffect { goToSubscriptions() }
